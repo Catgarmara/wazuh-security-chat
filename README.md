@@ -14,14 +14,19 @@ Proof-of-concept utilities that plug large-language-model helpers into **WAZUH**
 │                 │    │                  │    │                 │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │
-         │ API/Log Export
+         │ SSH/Log Export
          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Localhost (RTX 3080)                         │
+│              Localhost (RTX 3080 AI Workstation)                │
 │  ┌─────────────────┐    ┌──────────────────┐                    │
-│  │   FastAPI       │    │    OpenAI API    │                    │
-│  │   Backend       │◄──►│   Integration    │                    │
-│  │                 │    │                  │                    │
+│  │  FastAPI +      │    │   Qwen3:8b LLM   │                    │
+│  │  WebSocket UI   │◄──►│  via Ollama      │                    │
+│  └─────────────────┘    └──────────────────┘                    │
+│           │                       ▲                             │
+│           ▼                       │                             │
+│  ┌─────────────────┐    ┌──────────────────┐                    │
+│  │  FAISS Vector   │    │  HuggingFace     │                    │
+│  │  Store (Logs)   │◄──►│  Embeddings      │                    │
 │  └─────────────────┘    └──────────────────┘                    │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -29,7 +34,7 @@ Proof-of-concept utilities that plug large-language-model helpers into **WAZUH**
 **Flow:**
 1. **Attack Simulation:** ParrotOS (VM3) generates malicious traffic against Metasploitable3 (VM2)
 2. **Detection:** Wazuh agent on VM2 forwards logs to Wazuh manager (VM1)
-3. **AI Analysis:** Local GPU-accelerated Python service processes alerts via OpenAI API
+3. **AI Analysis:** Local GPU-accelerated Llama3 model processes alerts via FastAPI
 4. **Output:** Enhanced threat intelligence and automated triage recommendations
 
 ## Features
@@ -77,7 +82,7 @@ The `samples/` directory contains 20 real Wazuh alerts exported from a lab envir
 ## ⚠️ Limitations
 
 - **Demo purposes only** - not hardened for production use
-- **API keys in plaintext** - use environment variables in real deployments  
+- **API keys in plaintext** - ~~not applicable with local model~~  
 - **No authentication** - endpoints are publicly accessible
 - **Limited error handling** - may fail on malformed input
 - **Resource intensive** - requires GPU for optimal LLM performance
@@ -85,7 +90,7 @@ The `samples/` directory contains 20 real Wazuh alerts exported from a lab envir
 ## Tech Stack
 
 - **Backend:** FastAPI (Python 3.9+)
-- **AI/ML:** OpenAI GPT API, local RTX 3080 acceleration
+- **AI/ML:** Llama3 local model, RTX 3080 GPU acceleration
 - **SIEM:** Wazuh 4.12 (OVA deployment)
 - **Testing:** Metasploitable3 + ParrotOS attack simulation
 - **Deployment:** Docker Compose
