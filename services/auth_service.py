@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from core.config import get_settings
 from core.redis_client import get_redis_client
+from core.metrics import metrics
 from models.database import User, UserRole
 from models.schemas import UserCreate, LoginRequest, TokenResponse, UserProfile
 
@@ -94,6 +95,9 @@ class AuthService:
         }
         
         token = jwt.encode(payload, self._secret_key, algorithm=self._algorithm)
+        
+        # Record token issuance
+        metrics.record_token_issued()
         
         return {
             "access_token": token,
@@ -200,14 +204,18 @@ class AuthService:
                             detail="Token has been revoked"
                         )
             
+            # Record successful token validation
+            metrics.record_token_validation("success")
             return payload
             
         except jwt.ExpiredSignatureError:
+            metrics.record_token_validation("expired")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has expired"
             )
         except jwt.InvalidTokenError:
+            metrics.record_token_validation("invalid")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token"
@@ -317,6 +325,7 @@ class AuthService:
         
         # Verify password
         if not self.verify_password(login_data.password, user.password_hash):
+            metrics.record_auth_attempt("failed", "password")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials"
@@ -325,6 +334,9 @@ class AuthService:
         # Update last login timestamp
         user.last_login = datetime.utcnow()
         db.commit()
+        
+        # Record successful authentication
+        metrics.record_auth_attempt("success", "password")
         
         return user
     

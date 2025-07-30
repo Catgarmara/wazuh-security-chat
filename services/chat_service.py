@@ -15,6 +15,7 @@ from fastapi import WebSocket, WebSocketDisconnect, HTTPException, status
 from sqlalchemy.orm import Session
 
 from core.database import get_db_session
+from core.metrics import metrics
 from models.database import User, ChatSession, Message, MessageRole
 from models.schemas import ChatMessageRequest, ChatMessageResponse, MessageCreate
 from services.auth_service import get_auth_service
@@ -88,6 +89,9 @@ class ConnectionManager:
                 
                 logger.info(f"WebSocket connection established for user {user.username} (ID: {user.id})")
                 
+                # Record WebSocket connection metrics
+                metrics.record_websocket_connection("connected")
+                
                 # Send connection confirmation
                 await self._send_to_connection(connection_id, {
                     "type": "connection_established",
@@ -140,6 +144,9 @@ class ConnectionManager:
                         del self.session_connections[session_id]
             
             logger.info(f"WebSocket connection {connection_id} disconnected")
+            
+            # Record WebSocket disconnection metrics
+            metrics.record_websocket_connection("disconnected")
             
         except Exception as e:
             logger.error(f"Error during WebSocket disconnection: {e}")
@@ -822,6 +829,10 @@ class ChatService:
                 content=message_content,
                 metadata={"connection_id": connection_id}
             )
+            
+            # Record chat message metrics
+            metrics.record_chat_message("user")
+            metrics.record_websocket_message("inbound", "chat")
             
             if not user_message:
                 await self.connection_manager._send_to_connection(connection_id, {

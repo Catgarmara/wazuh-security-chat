@@ -9,6 +9,7 @@ from core.config import get_settings
 from core.container import get_container
 from core.database import init_database, shutdown_database
 from core.exceptions import WazuhChatException, EXCEPTION_STATUS_MAP
+from core.metrics import metrics, metrics_endpoint, setup_metrics_middleware
 
 # Import API routers
 from api.auth import router as auth_router
@@ -32,6 +33,14 @@ async def lifespan(app: FastAPI):
     # Initialize database
     init_database()
     print("✅ Database initialized")
+    
+    # Initialize metrics
+    metrics.set_app_info(
+        name=settings.app_name,
+        version=settings.version,
+        environment=settings.environment
+    )
+    print("📊 Metrics initialized")
     
     yield
     
@@ -65,6 +74,9 @@ def create_app() -> FastAPI:
     from core.audit_middleware import setup_audit_middleware
     setup_audit_middleware(app)
     
+    # Add metrics middleware
+    setup_metrics_middleware(app)
+    
     # Add exception handlers
     @app.exception_handler(WazuhChatException)
     async def wazuh_exception_handler(request, exc: WazuhChatException):
@@ -84,6 +96,11 @@ def create_app() -> FastAPI:
             "version": settings.version,
             "environment": settings.environment
         }
+    
+    # Metrics endpoint
+    @app.get("/metrics")
+    async def get_metrics():
+        return await metrics_endpoint()
     
     # Include API routers
     app.include_router(auth_router, prefix=settings.api_prefix)

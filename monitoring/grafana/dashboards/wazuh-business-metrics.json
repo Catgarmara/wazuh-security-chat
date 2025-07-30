@@ -1,0 +1,220 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Wazuh AI Companion - Business Metrics",
+    "tags": ["wazuh", "business", "analytics"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Active Users",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "wazuh_chat_sessions_active",
+            "legendFormat": "Active Users"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Messages per Hour",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(wazuh_chat_messages_total[1h])) * 3600",
+            "legendFormat": "Messages/Hour"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Average Session Duration",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(wazuh_session_duration_seconds_bucket[1h])) by (le)) / 60",
+            "legendFormat": "Avg Duration"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "min"
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Queries per Session",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(wazuh_user_queries_per_session_bucket[1h])) by (le))",
+            "legendFormat": "Avg Queries"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "User Activity Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(wazuh_chat_sessions_total[5m]))",
+            "legendFormat": "New Sessions/min"
+          },
+          {
+            "expr": "wazuh_chat_sessions_active",
+            "legendFormat": "Active Sessions"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "id": 6,
+        "title": "Message Volume by Type",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(wazuh_chat_messages_total[5m])) by (role)",
+            "legendFormat": "{{role}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "mps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      },
+      {
+        "id": 7,
+        "title": "Log Processing Activity",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(wazuh_log_entries_processed_total[5m])) by (source)",
+            "legendFormat": "{{source}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "eps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+      },
+      {
+        "id": 8,
+        "title": "Authentication Success Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(wazuh_auth_attempts_total{status=\"success\"}[5m])) / sum(rate(wazuh_auth_attempts_total[5m])) * 100",
+            "legendFormat": "Success Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+      },
+      {
+        "id": 9,
+        "title": "Session Duration Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "sum(rate(wazuh_session_duration_seconds_bucket[5m])) by (le)",
+            "legendFormat": "{{le}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "spectrum"},
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20}
+      },
+      {
+        "id": 10,
+        "title": "Queries per Session Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "sum(rate(wazuh_user_queries_per_session_bucket[5m])) by (le)",
+            "legendFormat": "{{le}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "spectrum"},
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20}
+      },
+      {
+        "id": 11,
+        "title": "Top Error Types",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, sum(rate(wazuh_system_errors_total[1h])) by (error_type, service))",
+            "legendFormat": "{{error_type}} ({{service}})"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "eps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28}
+      }
+    ],
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "refresh": "1m"
+  }
+}

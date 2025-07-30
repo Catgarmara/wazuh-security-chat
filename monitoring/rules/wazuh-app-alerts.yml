@@ -1,0 +1,230 @@
+groups:
+  - name: wazuh-app-alerts
+    rules:
+      # High error rate alert
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(wazuh_http_requests_total{status_code=~"5.."}[5m])) /
+            sum(rate(wazuh_http_requests_total[5m]))
+          ) * 100 > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: wazuh-app
+        annotations:
+          summary: "High HTTP error rate detected"
+          description: "HTTP error rate is {{ $value }}% over the last 5 minutes"
+
+      # High response time alert
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(wazuh_http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 2
+        for: 3m
+        labels:
+          severity: warning
+          service: wazuh-app
+        annotations:
+          summary: "High HTTP response time detected"
+          description: "95th percentile response time is {{ $value }}s"
+
+      # AI service high latency
+      - alert: AIServiceHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(wazuh_ai_query_duration_seconds_bucket[5m])) by (le)
+          ) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: ai-service
+        annotations:
+          summary: "AI service experiencing high latency"
+          description: "95th percentile AI query time is {{ $value }}s"
+
+      # AI service failure rate
+      - alert: AIServiceFailureRate
+        expr: |
+          (
+            sum(rate(wazuh_ai_queries_total{status="error"}[5m])) /
+            sum(rate(wazuh_ai_queries_total[5m]))
+          ) * 100 > 10
+        for: 2m
+        labels:
+          severity: critical
+          service: ai-service
+        annotations:
+          summary: "High AI service failure rate"
+          description: "AI service failure rate is {{ $value }}%"
+
+      # Database connection issues
+      - alert: DatabaseConnectionsHigh
+        expr: wazuh_database_connections_active > 80
+        for: 1m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High number of database connections"
+          description: "Database has {{ $value }} active connections"
+
+      # Database query latency
+      - alert: DatabaseQueryLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(wazuh_database_query_duration_seconds_bucket[5m])) by (le)
+          ) > 1
+        for: 2m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database query latency"
+          description: "95th percentile database query time is {{ $value }}s"
+
+      # Redis operation failures
+      - alert: RedisOperationFailures
+        expr: |
+          (
+            sum(rate(wazuh_redis_operations_total{status="error"}[5m])) /
+            sum(rate(wazuh_redis_operations_total[5m]))
+          ) * 100 > 5
+        for: 1m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "High Redis operation failure rate"
+          description: "Redis operation failure rate is {{ $value }}%"
+
+      # WebSocket connection issues
+      - alert: WebSocketConnectionDrop
+        expr: |
+          rate(wazuh_websocket_connections_total{status="disconnected"}[5m]) > 
+          rate(wazuh_websocket_connections_total{status="connected"}[5m]) * 2
+        for: 2m
+        labels:
+          severity: warning
+          service: websocket
+        annotations:
+          summary: "High WebSocket disconnection rate"
+          description: "WebSocket disconnections are significantly higher than connections"
+
+      # Authentication failures
+      - alert: HighAuthFailureRate
+        expr: |
+          (
+            sum(rate(wazuh_auth_attempts_total{status="failed"}[5m])) /
+            sum(rate(wazuh_auth_attempts_total[5m]))
+          ) * 100 > 20
+        for: 2m
+        labels:
+          severity: warning
+          service: auth
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is {{ $value }}%"
+
+      # System error rate
+      - alert: SystemErrorRate
+        expr: sum(rate(wazuh_system_errors_total[5m])) > 1
+        for: 1m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "High system error rate"
+          description: "System is generating {{ $value }} errors per second"
+
+      # Log processing issues
+      - alert: LogProcessingFailures
+        expr: |
+          (
+            sum(rate(wazuh_log_entries_processed_total{status="error"}[5m])) /
+            sum(rate(wazuh_log_entries_processed_total[5m]))
+          ) * 100 > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: log-processor
+        annotations:
+          summary: "High log processing failure rate"
+          description: "Log processing failure rate is {{ $value }}%"
+
+      # Application down
+      - alert: ApplicationDown
+        expr: up{job="wazuh-app"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: wazuh-app
+        annotations:
+          summary: "Wazuh application is down"
+          description: "The Wazuh AI Companion application is not responding"
+
+      # Memory usage high
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}%"
+
+      # Disk space low
+      - alert: LowDiskSpace
+        expr: |
+          (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value }}%"
+
+  - name: wazuh-business-alerts
+    rules:
+      # Low user engagement
+      - alert: LowUserEngagement
+        expr: |
+          sum(rate(wazuh_chat_messages_total[1h])) < 10
+        for: 30m
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "Low user engagement detected"
+          description: "Only {{ $value }} messages per second in the last hour"
+
+      # Unusual query patterns
+      - alert: UnusualQueryVolume
+        expr: |
+          sum(rate(wazuh_ai_queries_total[5m])) > 
+          avg_over_time(sum(rate(wazuh_ai_queries_total[5m]))[1h:5m]) * 3
+        for: 5m
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "Unusual query volume detected"
+          description: "Query volume is {{ $value }}x higher than normal"
+
+      # Session duration anomaly
+      - alert: UnusualSessionDuration
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(wazuh_session_duration_seconds_bucket[1h])) by (le)
+          ) > 3600
+        for: 10m
+        labels:
+          severity: info
+          service: business
+        annotations:
+          summary: "Unusually long user sessions"
+          description: "95th percentile session duration is {{ $value }}s"
