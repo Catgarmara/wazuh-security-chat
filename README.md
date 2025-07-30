@@ -2,7 +2,7 @@
 
 **Detection engineering demonstration project showcasing practical SIEM implementation, attack simulation, and AI-enhanced threat hunting capabilities.**
 
-This project is a production-ready implementation of the AI-powered threat hunting chatbot featured in Wazuh's ["Leveraging Artificial Intelligence for Threat Hunting"](https://wazuh.com/blog/leveraging-artificial-intelligence-for-threat-hunting-in-wazuh/) blog post (July 2025). Building upon their foundational Python implementation, this version provides enterprise-grade microservices architecture, comprehensive authentication, database persistence, and enhanced security features for real-world deployment in threat hunting operations.
+This project is a production-ready implementation of the AI-powered threat hunting chatbot featured in Wazuh's ["Leveraging Artificial Intelligence for Threat Hunting"](https://wazuh.com/blog/leveraging-artificial-intelligence-for-threat-hunting-in-wazuh/) blog post (June 2025). Building upon their foundational Python implementation, this version provides enterprise-grade microservices architecture, comprehensive authentication, database persistence, and enhanced security features for real-world deployment in threat hunting operations.
 
 ---
 
