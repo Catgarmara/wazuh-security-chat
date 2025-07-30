@@ -1,0 +1,1 @@
+# Production Wazuh AI Companion Application
