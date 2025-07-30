@@ -2,7 +2,7 @@
 
 **Detection engineering demonstration project showcasing practical SIEM implementation, attack simulation, and AI-enhanced threat hunting capabilities.**
 
-This project aims to be a production-ready implementation of the AI-powered threat hunting chatbot featured in Wazuh's ["Leveraging Artificial Intelligence for Threat Hunting"](https://wazuh.com/blog/leveraging-artificial-intelligence-for-threat-hunting-in-wazuh/) blog post (July 2025). Building upon their foundational Python implementation, this version provides enterprise-grade architecture, scalability, and enhanced security features for real-world deployment in threat hunting operations.
+This project is a production-ready implementation of the AI-powered threat hunting chatbot featured in Wazuh's ["Leveraging Artificial Intelligence for Threat Hunting"](https://wazuh.com/blog/leveraging-artificial-intelligence-for-threat-hunting-in-wazuh/) blog post (July 2025). Building upon their foundational Python implementation, this version provides enterprise-grade microservices architecture, comprehensive authentication, database persistence, and enhanced security features for real-world deployment in threat hunting operations.
 
 ---
 
@@ -79,10 +79,14 @@ This project aims to be a production-ready implementation of the AI-powered thre
 - **Alert Tuning**: Optimized detection thresholds to reduce false positives
 - **Coverage Mapping**: Mapped detections to MITRE ATT&CK techniques for coverage analysis
 
-### **Deployment Improvements**
+### **Production Architecture Refactor**
+- **Microservices Design**: Separated concerns into dedicated services (Auth, Chat, Log, AI)
+- **Database Layer**: PostgreSQL for persistent data, Redis for sessions and caching
+- **Authentication System**: JWT tokens with role-based access control (Admin/Analyst/Viewer)
+- **API Architecture**: RESTful endpoints with WebSocket support for real-time chat
 - **Container Support**: Docker configuration for easy deployment
-- **CI/CD Pipeline**: GitHub Actions for automated testing
-- **Security Hardening**: Additional authentication and input validation
+- **Comprehensive Testing**: Unit, integration, and validation test suites
+- **Security Hardening**: Input validation, rate limiting, audit logging
 
 ---
 
@@ -115,21 +119,26 @@ curl -fsSL https://ollama.com/install.sh | sh
 ollama pull llama3
 
 # Install Python dependencies
-pip install fastapi uvicorn langchain langchain-community langchain-ollama \
-            langchain-huggingface faiss-cpu paramiko python-daemon
+pip install -r requirements.txt
+
+# Set up databases (PostgreSQL and Redis required)
+# See docs/deployment.md for detailed setup instructions
 ```
 
-### Launch the AI Assistant
+### Launch the Production System
 ```bash
 # Clone and navigate to project
 git clone https://github.com/yourusername/wazuh-ai-companion
 cd wazuh-ai-companion
 
-# Start the threat hunting assistant
-python chatagent.py
+# Initialize database
+python scripts/init_db.py
+
+# Start the application
+python app/main.py
 
 # Access web interface at http://localhost:8000
-# Default credentials: yuuchat / 1234
+# Create admin user via API or use default test credentials
 ```
 
 ### Example Queries
@@ -185,10 +194,20 @@ python chatagent.py
 
 ## Technical Stack
 
-- **SIEM Platform**: Wazuh 4.12 (Ubuntu 20.04 LTS)
-- **AI/ML**: Llama3 8B via Ollama, local GPU acceleration
+### **Production Infrastructure**
+- **Database**: PostgreSQL (primary data), Redis (sessions/cache)
+- **Backend**: FastAPI microservices with dependency injection
+- **Authentication**: JWT tokens with bcrypt password hashing
+- **API**: RESTful endpoints + WebSocket for real-time chat
+- **Testing**: Comprehensive unit/integration test suite
+
+### **AI/ML Components**
+- **LLM**: Llama3 8B via Ollama, local GPU acceleration
 - **Vector Database**: FAISS with HuggingFace embeddings
-- **Backend**: FastAPI (Python 3.9+) with WebSocket support
+- **RAG Pipeline**: Semantic search with conversation context
+
+### **Lab Environment**
+- **SIEM Platform**: Wazuh 4.12 (Ubuntu 20.04 LTS)
 - **Attack Lab**: Metasploitable3 (Windows) + ParrotOS (Linux)
 - **Infrastructure**: VMware/VirtualBox virtual machines
 
