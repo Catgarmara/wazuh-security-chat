@@ -32,3 +32,9 @@ try:
     __all__.append('ChatService')
 except ImportError:
     pass
+
+try:
+    from .analytics_service import AnalyticsService
+    __all__.append('AnalyticsService')
+except ImportError:
+    pass

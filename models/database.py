@@ -229,3 +229,106 @@ class SystemMetrics(Base):
     
     def __repr__(self):
         return f"<SystemMetrics(metric_name='{self.metric_name}', value={self.metric_value})>"
+
+c
+lass AuditLog(Base):
+    """Audit log model for tracking user actions and system events."""
+    
+    __tablename__ = "audit_logs"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    event_type = Column(String(100), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    resource_type = Column(String(100), nullable=True, index=True)
+    resource_id = Column(String(255), nullable=True, index=True)
+    details = Column(JSON, nullable=True)  # Additional event details
+    ip_address = Column(String(45), nullable=True, index=True)  # IPv4/IPv6 address
+    user_agent = Column(Text, nullable=True)
+    session_id = Column(String(255), nullable=True, index=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    
+    # Constraints
+    __table_args__ = (
+        Index('idx_audit_event_type_timestamp', 'event_type', 'timestamp'),
+        Index('idx_audit_user_timestamp', 'user_id', 'timestamp'),
+        Index('idx_audit_resource_type_timestamp', 'resource_type', 'timestamp'),
+        Index('idx_audit_ip_timestamp', 'ip_address', 'timestamp'),
+    )
+    
+    def __repr__(self):
+        return f"<AuditLog(id={self.id}, event_type='{self.event_type}', user_id={self.user_id})>"
+
+
+class SecurityEvent(Base):
+    """Security event model for tracking security-related incidents."""
+    
+    __tablename__ = "security_events"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    event_type = Column(String(100), nullable=False, index=True)
+    severity = Column(String(20), nullable=False, index=True)  # low, medium, high, critical
+    description = Column(Text, nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    ip_address = Column(String(45), nullable=True, index=True)
+    details = Column(JSON, nullable=True)  # Additional event details
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    
+    # Resolution tracking
+    resolved = Column(Boolean, default=False, nullable=False, index=True)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+    resolved_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    resolution_notes = Column(Text, nullable=True)
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    resolver = relationship("User", foreign_keys=[resolved_by])
+    
+    # Constraints
+    __table_args__ = (
+        Index('idx_security_event_type_timestamp', 'event_type', 'timestamp'),
+        Index('idx_security_severity_timestamp', 'severity', 'timestamp'),
+        Index('idx_security_resolved_timestamp', 'resolved', 'timestamp'),
+        Index('idx_security_user_timestamp', 'user_id', 'timestamp'),
+        Index('idx_security_ip_timestamp', 'ip_address', 'timestamp'),
+    )
+    
+    @validates('severity')
+    def validate_severity(self, key, severity):
+        """Validate security event severity."""
+        valid_severities = ['low', 'medium', 'high', 'critical']
+        if severity not in valid_severities:
+            raise ValueError(f"Invalid severity: {severity}. Must be one of {valid_severities}")
+        return severity
+    
+    def __repr__(self):
+        return f"<SecurityEvent(id={self.id}, event_type='{self.event_type}', severity='{self.severity}')>"
+
+
+class ComplianceReport(Base):
+    """Compliance report model for storing generated compliance reports."""
+    
+    __tablename__ = "compliance_reports"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    report_type = Column(String(50), nullable=False, index=True)
+    period_start = Column(DateTime(timezone=True), nullable=False, index=True)
+    period_end = Column(DateTime(timezone=True), nullable=False, index=True)
+    generated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    report_data = Column(JSON, nullable=False)  # Full report data
+    file_path = Column(String(500), nullable=True)  # Path to exported report file
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    generator = relationship("User", foreign_keys=[generated_by])
+    
+    # Constraints
+    __table_args__ = (
+        Index('idx_compliance_type_period', 'report_type', 'period_start', 'period_end'),
+        Index('idx_compliance_generated_by', 'generated_by'),
+    )
+    
+    def __repr__(self):
+        return f"<ComplianceReport(id={self.id}, type='{self.report_type}', period={self.period_start}-{self.period_end})>"

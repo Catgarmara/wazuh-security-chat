@@ -347,3 +347,174 @@ class DateRange(BaseModel):
         if 'start_date' in values and v <= values['start_date']:
             raise ValueError('end_date must be after start_date')
         return v
+# Au
+dit logging schemas
+class AuditLogBase(BaseModel):
+    """Base audit log schema."""
+    event_type: str = Field(..., max_length=100)
+    resource_type: Optional[str] = Field(None, max_length=100)
+    resource_id: Optional[str] = Field(None, max_length=255)
+    details: Optional[Dict[str, Any]] = None
+    ip_address: Optional[str] = Field(None, max_length=45)
+    user_agent: Optional[str] = None
+    session_id: Optional[str] = Field(None, max_length=255)
+
+
+class AuditLogCreate(AuditLogBase):
+    """Schema for creating audit log entries."""
+    user_id: Optional[UUID] = None
+
+
+class AuditLogResponse(AuditLogBase):
+    """Schema for audit log API responses."""
+    id: UUID
+    user_id: Optional[UUID] = None
+    timestamp: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class AuditLogSearch(BaseModel):
+    """Schema for audit log search requests."""
+    user_id: Optional[UUID] = None
+    event_type: Optional[str] = None
+    resource_type: Optional[str] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    ip_address: Optional[str] = None
+    limit: int = Field(default=100, ge=1, le=1000)
+    offset: int = Field(default=0, ge=0)
+
+
+# Security event schemas
+class SecurityEventBase(BaseModel):
+    """Base security event schema."""
+    event_type: str = Field(..., max_length=100)
+    severity: str = Field(..., regex=r'^(low|medium|high|critical)$')
+    description: str = Field(..., min_length=1)
+    ip_address: Optional[str] = Field(None, max_length=45)
+    details: Optional[Dict[str, Any]] = None
+
+
+class SecurityEventCreate(SecurityEventBase):
+    """Schema for creating security events."""
+    user_id: Optional[UUID] = None
+
+
+class SecurityEventResponse(SecurityEventBase):
+    """Schema for security event API responses."""
+    id: UUID
+    user_id: Optional[UUID] = None
+    timestamp: datetime
+    resolved: bool = False
+    resolved_at: Optional[datetime] = None
+    resolved_by: Optional[UUID] = None
+    resolution_notes: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+
+class SecurityEventSearch(BaseModel):
+    """Schema for security event search requests."""
+    severity: Optional[str] = Field(None, regex=r'^(low|medium|high|critical)$')
+    resolved: Optional[bool] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    limit: int = Field(default=100, ge=1, le=1000)
+    offset: int = Field(default=0, ge=0)
+
+
+class SecurityEventResolve(BaseModel):
+    """Schema for resolving security events."""
+    resolution_notes: Optional[str] = Field(None, max_length=1000)
+
+
+# Compliance report schemas
+class ComplianceReportBase(BaseModel):
+    """Base compliance report schema."""
+    report_type: str = Field(..., max_length=50)
+    period_start: datetime
+    period_end: datetime
+    
+    @validator('period_end')
+    def validate_period(cls, v, values):
+        """Validate that period_end is after period_start."""
+        if 'period_start' in values and v <= values['period_start']:
+            raise ValueError('period_end must be after period_start')
+        return v
+
+
+class ComplianceReportCreate(ComplianceReportBase):
+    """Schema for creating compliance reports."""
+    pass
+
+
+class ComplianceReportResponse(ComplianceReportBase):
+    """Schema for compliance report API responses."""
+    id: UUID
+    generated_by: UUID
+    report_data: Dict[str, Any]
+    file_path: Optional[str] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class ComplianceReportSearch(BaseModel):
+    """Schema for compliance report search requests."""
+    report_type: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    limit: int = Field(default=50, ge=1, le=100)
+    offset: int = Field(default=0, ge=0)
+
+
+# Audit statistics schemas
+class AuditStatistics(BaseModel):
+    """Schema for audit statistics."""
+    total_events: int
+    events_by_type: Dict[str, int]
+    unique_users: int
+    date_range: Dict[str, datetime]
+
+
+class SecurityStatistics(BaseModel):
+    """Schema for security statistics."""
+    total_events: int
+    events_by_severity: Dict[str, int]
+    resolved_events: int
+    unresolved_events: int
+    resolution_rate: float
+
+
+class UserActivityStatistics(BaseModel):
+    """Schema for user activity statistics."""
+    login_events: int
+    failed_logins: int
+    login_success_rate: float
+    active_users: int
+
+
+class ComplianceMetrics(BaseModel):
+    """Schema for compliance metrics."""
+    data_access_events: int
+    administrative_actions: int
+    security_violations: int
+    audit_coverage: str
+    retention_compliance: str
+
+
+class ComplianceReportData(BaseModel):
+    """Schema for full compliance report data."""
+    report_id: str
+    generated_at: str
+    period: Dict[str, str]
+    report_type: str
+    audit_statistics: AuditStatistics
+    security_statistics: SecurityStatistics
+    user_activity: UserActivityStatistics
+    compliance_metrics: ComplianceMetrics
+    recent_security_events: Optional[List[Dict[str, Any]]] = None

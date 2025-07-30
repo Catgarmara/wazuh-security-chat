@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Kiro IDE files
+.kiro/
+
+# Test directories
+tests/
