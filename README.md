@@ -213,28 +213,25 @@ python app/main.py
 
 ---
 
-## Learning Outcomes
-
-Through this project, I demonstrated proficiency in:
+## Architecture Highlights
 
 ### **Detection Engineering**
-- SIEM deployment, configuration, and rule development
-- Custom detection logic creation and alert tuning
-- Log source integration and parsing optimization
-- Detection coverage analysis using MITRE ATT&CK framework
-- False positive reduction and detection quality metrics
+- Production SIEM deployment with custom rule development
+- Advanced detection logic with MITRE ATT&CK coverage mapping
+- Optimized log parsing and false positive reduction
+- Real-time threat hunting with AI-enhanced analysis
 
 ### **AI/ML Implementation**
-- RAG system architecture and implementation
-- Vector databases and semantic search
-- LLM integration and prompt engineering
-- Real-time web application development
+- Enterprise RAG architecture with vector similarity search
+- Local LLM deployment with GPU acceleration
+- Conversational interface with context persistence
+- Semantic log analysis and pattern recognition
 
-### **Infrastructure & DevOps**
-- Multi-VM lab environment design and deployment
-- Network segmentation and security controls
-- Containerization and automated deployment
-- Documentation and knowledge transfer
+### **Infrastructure & Security**
+- Microservices architecture with role-based access control
+- Multi-database persistence layer (PostgreSQL/Redis)
+- Container orchestration and automated deployment
+- Comprehensive security hardening and audit logging
 
 ---
 
