@@ -1,0 +1,398 @@
+name: Wazuh AI Companion CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Code Quality and Security Checks
+  code-quality:
+    name: Code Quality & Security
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort bandit safety mypy
+        pip install -r requirements.txt
+
+    - name: Code formatting check (Black)
+      run: black --check --diff .
+
+    - name: Import sorting check (isort)
+      run: isort --check-only --diff .
+
+    - name: Linting (flake8)
+      run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    - name: Type checking (mypy)
+      run: mypy . --ignore-missing-imports || true
+
+    - name: Security scan (Bandit)
+      run: bandit -r . -f json -o bandit-report.json || true
+
+    - name: Dependency security check (Safety)
+      run: safety check --json --output safety-report.json || true
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+
+  # Unit and Integration Tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: code-quality
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: test_user
+          POSTGRES_DB: test_wazuh_chat
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y postgresql-client
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+
+    - name: Set up test environment
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: test_wazuh_chat
+        DB_USER: test_user
+        DB_PASSWORD: test_password
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        SECRET_KEY: test_secret_key_for_ci_cd_pipeline_32_chars_minimum
+        ENVIRONMENT: testing
+      run: |
+        # Initialize test database
+        python scripts/init_db.py
+
+    - name: Run unit tests
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: test_wazuh_chat
+        DB_USER: test_user
+        DB_PASSWORD: test_password
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        SECRET_KEY: test_secret_key_for_ci_cd_pipeline_32_chars_minimum
+        ENVIRONMENT: testing
+      run: |
+        python -m pytest tests/unit/ -v --cov=. --cov-report=xml --cov-report=html
+
+    - name: Run integration tests
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: test_wazuh_chat
+        DB_USER: test_user
+        DB_PASSWORD: test_password
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        SECRET_KEY: test_secret_key_for_ci_cd_pipeline_32_chars_minimum
+        ENVIRONMENT: testing
+      run: |
+        python tests/integration/test_runner_integration.py
+
+    - name: Run performance tests
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_NAME: test_wazuh_chat
+        DB_USER: test_user
+        DB_PASSWORD: test_password
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        SECRET_KEY: test_secret_key_for_ci_cd_pipeline_32_chars_minimum
+        ENVIRONMENT: testing
+      run: |
+        python tests/performance/test_simple_performance.py
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: |
+          htmlcov/
+          coverage.xml
+
+  # Build Docker Image
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha,prefix={{branch}}-
+
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # Security Scanning
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request'
+
+    steps:
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ needs.build.outputs.image-tag }}
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, security-scan]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: staging
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to staging
+      run: |
+        export KUBECONFIG=kubeconfig
+        export IMAGE_TAG="${{ needs.build.outputs.image-tag }}"
+        
+        # Update deployment with new image
+        envsubst < kubernetes/app-deployment.yaml | kubectl apply -f -
+        
+        # Wait for rollout to complete
+        kubectl rollout status deployment/wazuh-ai-companion -n staging --timeout=300s
+
+    - name: Run smoke tests
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Get service URL
+        STAGING_URL=$(kubectl get service wazuh-ai-companion -n staging -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        
+        # Run basic health check
+        curl -f http://$STAGING_URL/health || exit 1
+        
+        echo "Staging deployment successful: http://$STAGING_URL"
+
+  # Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to production
+      run: |
+        export KUBECONFIG=kubeconfig
+        export IMAGE_TAG="${{ needs.build.outputs.image-tag }}"
+        
+        # Update deployment with new image
+        envsubst < kubernetes/app-deployment.yaml | kubectl apply -f -
+        
+        # Wait for rollout to complete
+        kubectl rollout status deployment/wazuh-ai-companion -n production --timeout=600s
+
+    - name: Run production health checks
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Get service URL
+        PROD_URL=$(kubectl get service wazuh-ai-companion -n production -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        
+        # Run comprehensive health checks
+        curl -f http://$PROD_URL/health || exit 1
+        curl -f http://$PROD_URL/metrics || exit 1
+        
+        echo "Production deployment successful: http://$PROD_URL"
+
+    - name: Notify deployment success
+      if: success()
+      run: |
+        echo "🎉 Production deployment successful!"
+        echo "Version: ${{ github.sha }}"
+        echo "Image: ${{ needs.build.outputs.image-tag }}"
+
+  # Release Deployment
+  deploy-release:
+    name: Deploy Release
+    runs-on: ubuntu-latest
+    needs: [build, security-scan]
+    if: github.event_name == 'release'
+    environment: production
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy release to production
+      run: |
+        export KUBECONFIG=kubeconfig
+        export IMAGE_TAG="${{ needs.build.outputs.image-tag }}"
+        
+        # Update deployment with release image
+        envsubst < kubernetes/app-deployment.yaml | kubectl apply -f -
+        
+        # Wait for rollout to complete
+        kubectl rollout status deployment/wazuh-ai-companion -n production --timeout=600s
+
+    - name: Create deployment record
+      run: |
+        echo "Release ${{ github.event.release.tag_name }} deployed successfully"
+        echo "Commit: ${{ github.sha }}"
+        echo "Image: ${{ needs.build.outputs.image-tag }}"
+        echo "Deployed at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+  # Cleanup
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production, deploy-release]
+    if: always()
+
+    steps:
+    - name: Clean up old images
+      run: |
+        echo "Cleaning up old container images..."
+        # This would typically involve cleaning up old images from the registry
+        # Implementation depends on your registry and retention policies

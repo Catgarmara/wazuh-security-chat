@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from core.database import get_db
 from core.permissions import get_current_active_user, admin_required
 from services.log_service import LogService, LogFilter, SSHCredentials
+from services.ai_service import AIService
 from models.database import User
 from models.schemas import (
     LogEntryResponse, LogEntrySearch, LogStats as LogStatsSchema,
@@ -31,6 +32,11 @@ router = APIRouter(prefix="/logs", tags=["Log Management"])
 def get_log_service() -> LogService:
     """Get log service instance."""
     return LogService()
+
+
+def get_ai_service() -> AIService:
+    """Get AI service instance."""
+    return AIService()
 
 
 @router.get("/health")
@@ -142,6 +148,8 @@ async def reload_logs(
     background_tasks: BackgroundTasks,
     days: int = Query(7, ge=1, le=365, description="Number of days to reload"),
     force: bool = Query(False, description="Force reload even if recent"),
+    update_vectorstore: bool = Query(True, description="Update vector store after reload"),
+    vectorstore_identifier: str = Query("default", description="Vector store identifier"),
     current_user: User = Depends(admin_required)
 ) -> Dict[str, Any]:
     """
@@ -151,6 +159,8 @@ async def reload_logs(
         background_tasks: FastAPI background tasks
         days: Number of days to reload (1-365)
         force: Force reload even if recently done
+        update_vectorstore: Whether to update vector store after reload
+        vectorstore_identifier: Identifier for vector store to update
         current_user: Current authenticated user (must be admin)
         
     Returns:
@@ -158,15 +168,39 @@ async def reload_logs(
     """
     try:
         log_service = get_log_service()
+        ai_service = get_ai_service()
         
         # Start reload operation in background
         def reload_task():
             try:
                 start_time = datetime.now()
                 logs = log_service.load_logs_from_days(days)
-                end_time = datetime.now()
+                reload_time = datetime.now()
                 
-                logger.info(f"Log reload completed: {len(logs)} logs loaded in {(end_time - start_time).total_seconds():.2f}s")
+                logger.info(f"Log reload completed: {len(logs)} logs loaded in {(reload_time - start_time).total_seconds():.2f}s")
+                
+                # Update vector store if requested
+                if update_vectorstore and logs:
+                    try:
+                        # Check if vector store exists, if not create it
+                        vectorstore_info = ai_service.get_vectorstore_info()
+                        if vectorstore_info.get("status") != "ready":
+                            # Create new vector store
+                            ai_service.create_vectorstore(logs)
+                            logger.info("Created new vector store from reloaded logs")
+                        else:
+                            # Update existing vector store
+                            ai_service.incremental_update_vectorstore(logs, vectorstore_identifier)
+                            logger.info("Updated existing vector store with reloaded logs")
+                        
+                        # Save updated vector store
+                        ai_service.save_vectorstore(vectorstore_identifier)
+                        
+                        end_time = datetime.now()
+                        logger.info(f"Vector store update completed in {(end_time - reload_time).total_seconds():.2f}s")
+                        
+                    except Exception as e:
+                        logger.error(f"Vector store update failed during log reload: {e}")
                 
             except Exception as e:
                 logger.error(f"Background log reload failed: {e}")
@@ -178,6 +212,8 @@ async def reload_logs(
             "status": "started",
             "days": days,
             "force": force,
+            "update_vectorstore": update_vectorstore,
+            "vectorstore_identifier": vectorstore_identifier,
             "initiated_by": current_user.username,
             "timestamp": datetime.now().isoformat()
         }
@@ -194,6 +230,8 @@ async def reload_logs(
 async def reload_logs_date_range(
     background_tasks: BackgroundTasks,
     date_range: DateRange,
+    update_vectorstore: bool = Query(True, description="Update vector store after reload"),
+    vectorstore_identifier: str = Query("default", description="Vector store identifier"),
     current_user: User = Depends(admin_required)
 ) -> Dict[str, Any]:
     """
@@ -202,6 +240,8 @@ async def reload_logs_date_range(
     Args:
         background_tasks: FastAPI background tasks
         date_range: Start and end dates for reload
+        update_vectorstore: Whether to update vector store after reload
+        vectorstore_identifier: Identifier for vector store to update
         current_user: Current authenticated user (must be admin)
         
     Returns:
@@ -209,6 +249,7 @@ async def reload_logs_date_range(
     """
     try:
         log_service = get_log_service()
+        ai_service = get_ai_service()
         
         # Validate date range
         days_diff = (date_range.end_date - date_range.start_date).days + 1
@@ -221,11 +262,37 @@ async def reload_logs_date_range(
         # Start reload operation in background
         def reload_date_range_task():
             try:
+                start_time = datetime.now()
                 status = log_service.reload_logs_with_date_range(
                     start_date=date_range.start_date,
                     end_date=date_range.end_date
                 )
+                reload_time = datetime.now()
+                
                 logger.info(f"Date range reload completed: {status.status}")
+                
+                # Update vector store if requested
+                if update_vectorstore and hasattr(status, 'logs') and status.logs:
+                    try:
+                        # Check if vector store exists, if not create it
+                        vectorstore_info = ai_service.get_vectorstore_info()
+                        if vectorstore_info.get("status") != "ready":
+                            # Create new vector store
+                            ai_service.create_vectorstore(status.logs)
+                            logger.info("Created new vector store from date range logs")
+                        else:
+                            # Update existing vector store
+                            ai_service.incremental_update_vectorstore(status.logs, vectorstore_identifier)
+                            logger.info("Updated existing vector store with date range logs")
+                        
+                        # Save updated vector store
+                        ai_service.save_vectorstore(vectorstore_identifier)
+                        
+                        end_time = datetime.now()
+                        logger.info(f"Vector store update completed in {(end_time - reload_time).total_seconds():.2f}s")
+                        
+                    except Exception as e:
+                        logger.error(f"Vector store update failed during date range reload: {e}")
                 
             except Exception as e:
                 logger.error(f"Background date range reload failed: {e}")
@@ -238,6 +305,8 @@ async def reload_logs_date_range(
             "start_date": date_range.start_date.isoformat(),
             "end_date": date_range.end_date.isoformat(),
             "days": days_diff,
+            "update_vectorstore": update_vectorstore,
+            "vectorstore_identifier": vectorstore_identifier,
             "initiated_by": current_user.username,
             "timestamp": datetime.now().isoformat()
         }
@@ -549,4 +618,65 @@ async def update_log_configuration(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update log configuration: {str(e)}"
+        )
+
+
+@router.get("/processing/status")
+async def get_processing_status(
+    current_user: User = Depends(get_current_active_user)
+) -> Dict[str, Any]:
+    """
+    Get current log processing status.
+    
+    Args:
+        current_user: Current authenticated user
+        
+    Returns:
+        Current processing status information
+    """
+    try:
+        log_service = get_log_service()
+        processing_status = log_service.get_processing_status()
+        
+        return {
+            "processing_status": processing_status,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error retrieving processing status: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve processing status: {str(e)}"
+        )
+
+
+@router.get("/processing/history")
+async def get_processing_history(
+    current_user: User = Depends(get_current_active_user)
+) -> Dict[str, Any]:
+    """
+    Get log processing operation history.
+    
+    Args:
+        current_user: Current authenticated user
+        
+    Returns:
+        List of recent processing operations
+    """
+    try:
+        log_service = get_log_service()
+        processing_history = log_service.get_processing_history()
+        
+        return {
+            "processing_history": processing_history,
+            "total_operations": len(processing_history),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error retrieving processing history: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve processing history: {str(e)}"
         )

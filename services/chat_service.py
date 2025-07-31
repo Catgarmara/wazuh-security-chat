@@ -18,9 +18,10 @@ from core.database import get_db_session
 from core.metrics import metrics
 from models.database import User, ChatSession, Message, MessageRole
 from models.schemas import ChatMessageRequest, ChatMessageResponse, MessageCreate
-from services.auth_service import get_auth_service
-# from services.ai_service import get_ai_service  # Temporarily disabled for testing
-# from services.log_service import get_log_service  # Temporarily disabled for testing
+# Import services directly to avoid circular imports
+from services.auth_service import AuthService
+from services.ai_service import AIService  
+from services.log_service import LogService
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +50,12 @@ class ConnectionManager:
         # Session to connections mapping: {session_id: Set[connection_id]}
         self.session_connections: Dict[UUID, Set[str]] = {}
         
-        self.auth_service = get_auth_service()
-        # self.ai_service = get_ai_service()  # Temporarily disabled for testing
-        self.ai_service = None
+        self.auth_service = AuthService()
+        try:
+            self.ai_service = AIService()
+        except Exception as e:
+            logger.warning(f"Failed to initialize AI service: {e}")
+            self.ai_service = None
     
     async def connect(self, websocket: WebSocket, token: str) -> str:
         """
@@ -290,8 +294,11 @@ class CommandProcessor:
     """
     
     def __init__(self):
-        # self.log_service = get_log_service()  # Temporarily disabled for testing
-        self.log_service = None
+        try:
+            self.log_service = LogService()
+        except Exception as e:
+            logger.warning(f"Failed to initialize Log service: {e}")
+            self.log_service = None
         self.commands = {
             'help': self._handle_help_command,
             'reload': self._handle_reload_command,
@@ -441,9 +448,17 @@ class CommandProcessor:
             # Reload logs
             try:
                 if self.log_service is None:
-                    result = {"total_logs": 0, "processing_time": 0.0}
-                else:
-                    result = self.log_service.reload_logs_from_days(days)
+                    return {
+                        "type": "command_error",
+                        "message": "Log service is currently unavailable.",
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                
+                logs = self.log_service.load_logs_from_days(days)
+                result = {
+                    "total_logs": len(logs),
+                    "processing_time": 0.0  # This would be calculated by the service
+                }
                 
                 return {
                     "type": "command_response",
@@ -476,17 +491,25 @@ class CommandProcessor:
         try:
             # Get log statistics
             if self.log_service is None:
-                stats = {
-                    "total_logs": 0,
-                    "date_range": {"start": "N/A", "end": "N/A"},
-                    "processing_time": 0.0,
-                    "sources": {},
-                    "levels": {},
-                    "vector_store": {"total_embeddings": 0, "index_size": 0},
-                    "system_healthy": True
+                return {
+                    "type": "command_error",
+                    "message": "Log service is currently unavailable.",
+                    "timestamp": datetime.utcnow().isoformat()
                 }
-            else:
-                stats = self.log_service.get_log_statistics()
+            
+            # Load recent logs to get statistics
+            logs = self.log_service.load_logs_from_days(7)  # Default to 7 days
+            log_stats = self.log_service.get_log_statistics(logs)
+            
+            stats = {
+                "total_logs": log_stats.total_logs,
+                "date_range": {"start": "N/A", "end": "N/A"},
+                "processing_time": log_stats.processing_time,
+                "sources": log_stats.sources,
+                "levels": log_stats.levels,
+                "vector_store": {"total_embeddings": 0, "index_size": 0},
+                "system_healthy": True
+            }
             
             # Format statistics message
             stats_message = f"""
@@ -703,9 +726,12 @@ class ChatService:
     
     def __init__(self):
         self.connection_manager = ConnectionManager()
-        self.auth_service = get_auth_service()
-        # self.ai_service = get_ai_service()  # Temporarily disabled for testing
-        self.ai_service = None
+        self.auth_service = AuthService()
+        try:
+            self.ai_service = AIService()
+        except Exception as e:
+            logger.warning(f"Failed to initialize AI service: {e}")
+            self.ai_service = None
         self.command_processor = CommandProcessor()
     
     async def handle_websocket_connection(self, websocket: WebSocket, token: str) -> None:
@@ -1030,9 +1056,9 @@ class ChatService:
             AI generated response
         """
         try:
-            # Temporary stub response while AI service is disabled
+            # Check if AI service is available
             if self.ai_service is None:
-                return f"Echo: {message} (AI service temporarily disabled for testing)"
+                return "⚠️ AI service is currently unavailable. Please try again later."
             
             # Generate response using AI service with session ID
             response = self.ai_service.generate_response(

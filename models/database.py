@@ -230,8 +230,8 @@ class SystemMetrics(Base):
     def __repr__(self):
         return f"<SystemMetrics(metric_name='{self.metric_name}', value={self.metric_value})>"
 
-c
-lass AuditLog(Base):
+
+class AuditLog(Base):
     """Audit log model for tracking user actions and system events."""
     
     __tablename__ = "audit_logs"

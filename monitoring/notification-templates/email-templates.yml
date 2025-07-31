@@ -1,0 +1,96 @@
+# Email notification templates for different alert severities
+
+critical_alert_template: |
+  🚨 CRITICAL ALERT - Immediate Action Required
+  
+  Alert: {{ .GroupLabels.alertname }}
+  Service: {{ .CommonLabels.service }}
+  Severity: {{ .CommonLabels.severity }}
+  Environment: {{ .CommonLabels.environment | default "production" }}
+  
+  {{ range .Alerts }}
+  📋 Summary: {{ .Annotations.summary }}
+  📝 Description: {{ .Annotations.description }}
+  ⏰ Started: {{ .StartsAt | date "2006-01-02 15:04:05 UTC" }}
+  {{ if .EndsAt }}⏰ Ended: {{ .EndsAt | date "2006-01-02 15:04:05 UTC" }}{{ end }}
+  
+  🔗 Labels:
+  {{ range .Labels.SortedPairs }}  - {{ .Name }}: {{ .Value }}
+  {{ end }}
+  {{ end }}
+  
+  🎯 Action Items:
+  1. Check system status immediately
+  2. Review logs for error patterns
+  3. Escalate to on-call engineer if needed
+  4. Update incident tracking system
+  
+  📊 Monitoring Links:
+  - Grafana Dashboard: http://grafana.local/d/wazuh-overview
+  - Prometheus Alerts: http://prometheus.local:9090/alerts
+  - Application Logs: http://kibana.local
+  
+  This is an automated alert from Wazuh AI Companion Monitoring System.
+
+warning_alert_template: |
+  ⚠️ WARNING ALERT - Attention Required
+  
+  Alert: {{ .GroupLabels.alertname }}
+  Service: {{ .CommonLabels.service }}
+  Severity: {{ .CommonLabels.severity }}
+  Environment: {{ .CommonLabels.environment | default "production" }}
+  
+  {{ range .Alerts }}
+  📋 Summary: {{ .Annotations.summary }}
+  📝 Description: {{ .Annotations.description }}
+  ⏰ Started: {{ .StartsAt | date "2006-01-02 15:04:05 UTC" }}
+  {{ end }}
+  
+  🔍 Recommended Actions:
+  1. Monitor the situation closely
+  2. Check related metrics and logs
+  3. Consider preventive measures
+  4. Document findings for future reference
+  
+  📊 Monitoring Links:
+  - Grafana Dashboard: http://grafana.local/d/wazuh-overview
+  - Prometheus Alerts: http://prometheus.local:9090/alerts
+  
+  This is an automated alert from Wazuh AI Companion Monitoring System.
+
+info_alert_template: |
+  ℹ️ INFO ALERT - For Your Information
+  
+  Alert: {{ .GroupLabels.alertname }}
+  Service: {{ .CommonLabels.service }}
+  Environment: {{ .CommonLabels.environment | default "production" }}
+  
+  {{ range .Alerts }}
+  📋 Summary: {{ .Annotations.summary }}
+  📝 Description: {{ .Annotations.description }}
+  ⏰ Started: {{ .StartsAt | date "2006-01-02 15:04:05 UTC" }}
+  {{ end }}
+  
+  📊 Monitoring Links:
+  - Grafana Dashboard: http://grafana.local/d/wazuh-overview
+  
+  This is an automated alert from Wazuh AI Companion Monitoring System.
+
+resolved_alert_template: |
+  ✅ RESOLVED - Alert Cleared
+  
+  Alert: {{ .GroupLabels.alertname }}
+  Service: {{ .CommonLabels.service }}
+  Severity: {{ .CommonLabels.severity }}
+  Environment: {{ .CommonLabels.environment | default "production" }}
+  
+  {{ range .Alerts }}
+  📋 Summary: {{ .Annotations.summary }}
+  ⏰ Started: {{ .StartsAt | date "2006-01-02 15:04:05 UTC" }}
+  ⏰ Resolved: {{ .EndsAt | date "2006-01-02 15:04:05 UTC" }}
+  ⏱️ Duration: {{ .EndsAt.Sub .StartsAt | humanizeDuration }}
+  {{ end }}
+  
+  The issue has been automatically resolved. No further action required.
+  
+  This is an automated alert from Wazuh AI Companion Monitoring System.

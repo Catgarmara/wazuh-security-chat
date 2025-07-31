@@ -1,0 +1,272 @@
+groups:
+  - name: wazuh-infrastructure-alerts
+    rules:
+      # Container health alerts
+      - alert: ContainerDown
+        expr: up{job=~".*exporter"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Container or exporter is down"
+          description: "{{$labels.job}} has been down for more than 30 seconds"
+
+      - alert: ContainerHighCPU
+        expr: rate(container_cpu_usage_seconds_total{name=~"wazuh-.*"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Container high CPU usage"
+          description: "Container {{$labels.name}} CPU usage is {{$value}}%"
+
+      - alert: ContainerHighMemory
+        expr: (container_memory_usage_bytes{name=~"wazuh-.*"} / container_spec_memory_limit_bytes{name=~"wazuh-.*"}) * 100 > 90
+        for: 2m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Container high memory usage"
+          description: "Container {{$labels.name}} memory usage is {{$value}}%"
+
+      - alert: ContainerRestartLoop
+        expr: increase(container_start_time_seconds{name=~"wazuh-.*"}[10m]) > 2
+        for: 1m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Container restart loop detected"
+          description: "Container {{$labels.name}} has restarted {{$value}} times in the last 10 minutes"
+
+      # Node/System alerts
+      - alert: NodeHighCPU
+        expr: 100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Node high CPU usage"
+          description: "Node CPU usage is {{$value}}%"
+
+      - alert: NodeHighMemory
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Node high memory usage"
+          description: "Node memory usage is {{$value}}%"
+
+      - alert: NodeDiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 85
+        for: 1m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Node disk space low"
+          description: "Node disk usage is {{$value}}%"
+
+      - alert: NodeDiskSpaceCritical
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 95
+        for: 1m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Node disk space critical"
+          description: "Node disk usage is {{$value}}%"
+
+      - alert: NodeHighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total{device!="lo"}[5m]) + rate(node_network_transmit_bytes_total{device!="lo"}[5m]) > 100000000
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High network traffic"
+          description: "Network traffic is {{$value}} bytes/sec"
+
+      - alert: NodeLoadHigh
+        expr: node_load15 > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Node load average high"
+          description: "Node 15-minute load average is {{$value}}"
+
+      # PostgreSQL specific alerts
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database is not responding"
+
+      - alert: PostgreSQLTooManyConnections
+        expr: sum(pg_stat_database_numbackends) > 80
+        for: 2m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "PostgreSQL too many connections"
+          description: "PostgreSQL has {{$value}} active connections"
+
+      - alert: PostgreSQLSlowQueries
+        expr: rate(pg_stat_database_tup_fetched[5m]) / rate(pg_stat_database_tup_returned[5m]) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "PostgreSQL slow queries detected"
+          description: "PostgreSQL query efficiency is low: {{$value}}"
+
+      - alert: PostgreSQLDeadlocks
+        expr: rate(pg_stat_database_deadlocks[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "PostgreSQL deadlocks detected"
+          description: "PostgreSQL is experiencing {{$value}} deadlocks per second"
+
+      # Redis specific alerts
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis server is not responding"
+
+      - alert: RedisHighMemoryUsage
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 90
+        for: 2m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{$value}}%"
+
+      - alert: RedisHighConnections
+        expr: redis_connected_clients > 100
+        for: 2m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis high connection count"
+          description: "Redis has {{$value}} connected clients"
+
+      - alert: RedisSlowLog
+        expr: redis_slowlog_length > 10
+        for: 1m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis slow queries detected"
+          description: "Redis slow log has {{$value}} entries"
+
+  - name: wazuh-sla-alerts
+    rules:
+      # SLA monitoring
+      - alert: SLAViolationUptime
+        expr: avg_over_time(up{job="wazuh-app"}[1h]) < 0.99
+        for: 5m
+        labels:
+          severity: critical
+          service: sla
+        annotations:
+          summary: "SLA violation: Uptime below 99%"
+          description: "Application uptime is {{$value | humanizePercentage}} in the last hour"
+
+      - alert: SLAViolationResponseTime
+        expr: histogram_quantile(0.95, sum(rate(wazuh_http_request_duration_seconds_bucket[1h])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: critical
+          service: sla
+        annotations:
+          summary: "SLA violation: Response time above 2s"
+          description: "95th percentile response time is {{$value}}s in the last hour"
+
+      - alert: SLAViolationErrorRate
+        expr: (sum(rate(wazuh_http_requests_total{status_code=~"5.."}[1h])) / sum(rate(wazuh_http_requests_total[1h]))) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          service: sla
+        annotations:
+          summary: "SLA violation: Error rate above 1%"
+          description: "Error rate is {{$value | humanizePercentage}} in the last hour"
+
+      - alert: SLAViolationAIService
+        expr: (sum(rate(wazuh_ai_queries_total{status="error"}[1h])) / sum(rate(wazuh_ai_queries_total[1h]))) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: sla
+        annotations:
+          summary: "SLA violation: AI service error rate above 5%"
+          description: "AI service error rate is {{$value | humanizePercentage}} in the last hour"
+
+  - name: wazuh-capacity-alerts
+    rules:
+      # Capacity planning alerts
+      - alert: HighRequestVolume
+        expr: sum(rate(wazuh_http_requests_total[5m])) > 100
+        for: 10m
+        labels:
+          severity: info
+          service: capacity
+        annotations:
+          summary: "High request volume detected"
+          description: "Request rate is {{$value}} requests/sec"
+
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: wazuh_database_connections_active / 100 > 0.8
+        for: 2m
+        labels:
+          severity: warning
+          service: capacity
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "Database connection pool is {{$value | humanizePercentage}} full"
+
+      - alert: RedisConnectionPoolExhaustion
+        expr: redis_connected_clients / 1000 > 0.8
+        for: 2m
+        labels:
+          severity: warning
+          service: capacity
+        annotations:
+          summary: "Redis connection pool near exhaustion"
+          description: "Redis connection pool is {{$value | humanizePercentage}} full"
+
+      - alert: WebSocketConnectionsHigh
+        expr: wazuh_websocket_connections_active > 500
+        for: 5m
+        labels:
+          severity: warning
+          service: capacity
+        annotations:
+          summary: "High WebSocket connection count"
+          description: "{{$value}} active WebSocket connections"

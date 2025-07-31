@@ -14,6 +14,7 @@ import asyncio
 import threading
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional, Tuple, Set, Callable
+from enum import Enum
 import paramiko
 from core.exceptions import LogProcessingError, ValidationError, ServiceUnavailableError
 from core.config import get_settings
@@ -21,6 +22,106 @@ import logging
 from collections import defaultdict, Counter
 
 logger = logging.getLogger(__name__)
+
+
+class LogProcessingStatus(Enum):
+    """Log processing status enumeration."""
+    IDLE = "idle"
+    LOADING = "loading"
+    PROCESSING = "processing"
+    UPDATING_VECTORSTORE = "updating_vectorstore"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class LogProcessingTracker:
+    """Tracks log processing operations and their status."""
+    
+    def __init__(self):
+        self.current_status = LogProcessingStatus.IDLE
+        self.current_operation = None
+        self.start_time = None
+        self.end_time = None
+        self.logs_processed = 0
+        self.total_logs = 0
+        self.error_message = None
+        self.operation_history = []
+        self._lock = threading.Lock()
+    
+    def start_operation(self, operation_name: str, total_logs: int = 0):
+        """Start a new log processing operation."""
+        with self._lock:
+            self.current_operation = operation_name
+            self.current_status = LogProcessingStatus.LOADING
+            self.start_time = datetime.now()
+            self.end_time = None
+            self.logs_processed = 0
+            self.total_logs = total_logs
+            self.error_message = None
+            
+            logger.info(f"Started log processing operation: {operation_name}")
+    
+    def update_status(self, status: LogProcessingStatus, logs_processed: int = None):
+        """Update the current processing status."""
+        with self._lock:
+            self.current_status = status
+            if logs_processed is not None:
+                self.logs_processed = logs_processed
+            
+            logger.debug(f"Log processing status updated: {status.value}")
+    
+    def complete_operation(self, success: bool = True, error_message: str = None):
+        """Complete the current operation."""
+        with self._lock:
+            self.end_time = datetime.now()
+            self.current_status = LogProcessingStatus.COMPLETED if success else LogProcessingStatus.FAILED
+            self.error_message = error_message
+            
+            # Add to history
+            operation_record = {
+                "operation": self.current_operation,
+                "start_time": self.start_time.isoformat() if self.start_time else None,
+                "end_time": self.end_time.isoformat(),
+                "duration_seconds": (self.end_time - self.start_time).total_seconds() if self.start_time else 0,
+                "logs_processed": self.logs_processed,
+                "total_logs": self.total_logs,
+                "success": success,
+                "error_message": error_message
+            }
+            
+            self.operation_history.append(operation_record)
+            
+            # Keep only last 10 operations
+            if len(self.operation_history) > 10:
+                self.operation_history = self.operation_history[-10:]
+            
+            logger.info(f"Completed log processing operation: {self.current_operation} "
+                       f"({'success' if success else 'failed'})")
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get current processing status."""
+        with self._lock:
+            duration = None
+            if self.start_time:
+                end_time = self.end_time or datetime.now()
+                duration = (end_time - self.start_time).total_seconds()
+            
+            return {
+                "status": self.current_status.value,
+                "operation": self.current_operation,
+                "start_time": self.start_time.isoformat() if self.start_time else None,
+                "end_time": self.end_time.isoformat() if self.end_time else None,
+                "duration_seconds": duration,
+                "logs_processed": self.logs_processed,
+                "total_logs": self.total_logs,
+                "progress_percentage": (self.logs_processed / self.total_logs * 100) if self.total_logs > 0 else 0,
+                "error_message": self.error_message
+            }
+    
+    def get_history(self) -> List[Dict[str, Any]]:
+        """Get operation history."""
+        with self._lock:
+            return self.operation_history.copy()
 
 
 class SSHCredentials:
@@ -156,6 +257,7 @@ class LogService:
     def __init__(self):
         self.settings = get_settings()
         self.log_base_path = "/var/ossec/logs/archives"
+        self.processing_tracker = LogProcessingTracker()
         
     def load_logs_from_days(self, past_days: int = 7, 
                            ssh_credentials: Optional[SSHCredentials] = None) -> List[Dict[str, Any]]:
@@ -175,20 +277,41 @@ class LogService:
         """
         if not 1 <= past_days <= 365:
             raise ValidationError("past_days must be between 1 and 365")
-            
+        
+        operation_name = f"load_logs_{past_days}_days"
+        if ssh_credentials:
+            operation_name += "_remote"
+        
+        self.processing_tracker.start_operation(operation_name)
+        
         try:
             if ssh_credentials:
-                return self._load_remote_logs(ssh_credentials, past_days)
+                logs = self._load_remote_logs(ssh_credentials, past_days)
             else:
-                return self._load_local_logs(past_days)
+                logs = self._load_local_logs(past_days)
+            
+            self.processing_tracker.complete_operation(success=True)
+            return logs
+            
         except Exception as e:
             logger.error(f"Failed to load logs from {past_days} days: {e}")
+            self.processing_tracker.complete_operation(success=False, error_message=str(e))
             raise LogProcessingError(f"Log loading failed: {str(e)}")
     
     def _load_local_logs(self, past_days: int) -> List[Dict[str, Any]]:
         """Load logs from local filesystem."""
         logs = []
         today = datetime.now()
+        
+        # Count total files to process for progress tracking
+        total_files = 0
+        for i in range(past_days):
+            day = today - timedelta(days=i)
+            file_paths = self._get_log_file_paths(day)
+            total_files += len(file_paths)
+        
+        self.processing_tracker.update_status(LogProcessingStatus.LOADING, 0)
+        processed_files = 0
         
         for i in range(past_days):
             day = today - timedelta(days=i)
@@ -197,14 +320,25 @@ class LogService:
             for file_path, open_func in file_paths:
                 if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
                     logger.warning(f"Log file missing or empty: {file_path}")
+                    processed_files += 1
                     continue
                     
                 try:
+                    self.processing_tracker.update_status(LogProcessingStatus.PROCESSING)
                     parsed_logs = self._parse_log_file(file_path, open_func)
                     logs.extend(parsed_logs)
+                    processed_files += 1
+                    
+                    # Update progress
+                    self.processing_tracker.update_status(
+                        LogProcessingStatus.PROCESSING, 
+                        len(logs)
+                    )
+                    
                     logger.info(f"Loaded {len(parsed_logs)} logs from {file_path}")
                 except Exception as e:
                     logger.error(f"Error reading {file_path}: {e}")
+                    processed_files += 1
                     continue
                     
         return logs
@@ -1131,3 +1265,219 @@ class LogService:
             validation_results["warnings"].append("No logs found - check log sources and date range")
         
         return validation_results
+    
+    def get_processing_status(self) -> Dict[str, Any]:
+        """
+        Get current log processing status.
+        
+        Returns:
+            Dictionary containing current processing status
+        """
+        return self.processing_tracker.get_status()
+    
+    def get_processing_history(self) -> List[Dict[str, Any]]:
+        """
+        Get log processing operation history.
+        
+        Returns:
+            List of recent processing operations
+        """
+        return self.processing_tracker.get_history()
+    
+    def load_logs_with_vectorstore_update(self, past_days: int = 7, 
+                                        ai_service=None, 
+                                        vectorstore_identifier: str = "default",
+                                        ssh_credentials: Optional[SSHCredentials] = None) -> List[Dict[str, Any]]:
+        """
+        Load logs and automatically update vector store.
+        
+        Args:
+            past_days: Number of days to load logs from
+            ai_service: AI service instance for vector store updates
+            vectorstore_identifier: Identifier for the vector store
+            ssh_credentials: Optional SSH credentials for remote access
+            
+        Returns:
+            List of loaded log entries
+            
+        Raises:
+            LogProcessingError: If log loading or vector store update fails
+        """
+        operation_name = f"load_logs_with_vectorstore_{past_days}_days"
+        self.processing_tracker.start_operation(operation_name)
+        
+        try:
+            # Load logs
+            self.processing_tracker.update_status(LogProcessingStatus.LOADING)
+            logs = self.load_logs_from_days(past_days, ssh_credentials)
+            
+            # Update vector store if AI service is provided
+            if ai_service and logs:
+                self.processing_tracker.update_status(LogProcessingStatus.UPDATING_VECTORSTORE)
+                
+                try:
+                    # Check if vector store exists
+                    vectorstore_info = ai_service.get_vectorstore_info()
+                    if vectorstore_info.get("status") != "ready":
+                        # Create new vector store
+                        ai_service.create_vectorstore(logs)
+                        logger.info("Created new vector store from loaded logs")
+                    else:
+                        # Update existing vector store
+                        ai_service.incremental_update_vectorstore(logs, vectorstore_identifier)
+                        logger.info("Updated existing vector store with loaded logs")
+                    
+                    # Save updated vector store
+                    ai_service.save_vectorstore(vectorstore_identifier)
+                    logger.info(f"Saved vector store as '{vectorstore_identifier}'")
+                    
+                except Exception as e:
+                    logger.error(f"Vector store update failed: {e}")
+                    # Don't fail the entire operation if vector store update fails
+                    # Just log the error and continue
+            
+            self.processing_tracker.complete_operation(success=True)
+            return logs
+            
+        except Exception as e:
+            logger.error(f"Failed to load logs with vector store update: {e}")
+            self.processing_tracker.complete_operation(success=False, error_message=str(e))
+            raise LogProcessingError(f"Log loading with vector store update failed: {str(e)}")
+    
+    def reload_logs_with_date_range(self, start_date: datetime, end_date: datetime,
+                                  ai_service=None, vectorstore_identifier: str = "default",
+                                  ssh_credentials: Optional[SSHCredentials] = None) -> LogReloadStatus:
+        """
+        Reload logs for a specific date range with optional vector store update.
+        
+        Args:
+            start_date: Start date for log loading
+            end_date: End date for log loading
+            ai_service: Optional AI service for vector store updates
+            vectorstore_identifier: Identifier for the vector store
+            ssh_credentials: Optional SSH credentials for remote access
+            
+        Returns:
+            LogReloadStatus with operation results
+        """
+        operation_name = f"reload_logs_date_range_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}"
+        start_time = datetime.now()
+        
+        self.processing_tracker.start_operation(operation_name)
+        
+        try:
+            # Calculate days to load
+            days_diff = (end_date - start_date).days + 1
+            
+            # Load logs for the date range
+            logs = []
+            current_date = start_date
+            
+            while current_date <= end_date:
+                day_logs = self._load_logs_for_date(current_date, ssh_credentials)
+                logs.extend(day_logs)
+                current_date += timedelta(days=1)
+                
+                # Update progress
+                progress = ((current_date - start_date).days / days_diff) * 100
+                self.processing_tracker.update_status(LogProcessingStatus.PROCESSING, len(logs))
+            
+            # Update vector store if requested
+            if ai_service and logs:
+                self.processing_tracker.update_status(LogProcessingStatus.UPDATING_VECTORSTORE)
+                
+                try:
+                    vectorstore_info = ai_service.get_vectorstore_info()
+                    if vectorstore_info.get("status") != "ready":
+                        ai_service.create_vectorstore(logs)
+                    else:
+                        ai_service.incremental_update_vectorstore(logs, vectorstore_identifier)
+                    
+                    ai_service.save_vectorstore(vectorstore_identifier)
+                    
+                except Exception as e:
+                    logger.error(f"Vector store update failed during date range reload: {e}")
+            
+            end_time = datetime.now()
+            self.processing_tracker.complete_operation(success=True)
+            
+            return LogReloadStatus(
+                status="completed",
+                message=f"Successfully reloaded {len(logs)} logs for date range",
+                progress=100.0,
+                logs_processed=len(logs),
+                total_logs=len(logs),
+                start_time=start_time,
+                end_time=end_time,
+                logs=logs  # Include logs in the status for vector store updates
+            )
+            
+        except Exception as e:
+            end_time = datetime.now()
+            error_message = f"Date range reload failed: {str(e)}"
+            logger.error(error_message)
+            
+            self.processing_tracker.complete_operation(success=False, error_message=str(e))
+            
+            return LogReloadStatus(
+                status="failed",
+                message=error_message,
+                progress=0.0,
+                logs_processed=0,
+                total_logs=0,
+                start_time=start_time,
+                end_time=end_time,
+                error_details=str(e)
+            )
+    
+    def _load_logs_for_date(self, date: datetime, 
+                           ssh_credentials: Optional[SSHCredentials] = None) -> List[Dict[str, Any]]:
+        """
+        Load logs for a specific date.
+        
+        Args:
+            date: Date to load logs for
+            ssh_credentials: Optional SSH credentials for remote access
+            
+        Returns:
+            List of log entries for the specified date
+        """
+        logs = []
+        
+        if ssh_credentials:
+            # Load from remote server
+            try:
+                ssh = paramiko.SSHClient()
+                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                ssh.connect(
+                    ssh_credentials.host,
+                    port=ssh_credentials.port,
+                    username=ssh_credentials.username,
+                    password=ssh_credentials.password
+                )
+                
+                sftp = ssh.open_sftp()
+                day_logs = self._load_remote_day_logs(sftp, date)
+                logs.extend(day_logs)
+                
+                sftp.close()
+                ssh.close()
+                
+            except Exception as e:
+                logger.error(f"Failed to load remote logs for {date}: {e}")
+        else:
+            # Load from local filesystem
+            file_paths = self._get_log_file_paths(date)
+            
+            for file_path, open_func in file_paths:
+                if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+                    continue
+                    
+                try:
+                    parsed_logs = self._parse_log_file(file_path, open_func)
+                    logs.extend(parsed_logs)
+                except Exception as e:
+                    logger.error(f"Error reading {file_path}: {e}")
+                    continue
+        
+        return logs

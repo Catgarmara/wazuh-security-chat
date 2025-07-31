@@ -347,8 +347,9 @@ class DateRange(BaseModel):
         if 'start_date' in values and v <= values['start_date']:
             raise ValueError('end_date must be after start_date')
         return v
-# Au
-dit logging schemas
+
+
+# Audit logging schemas
 class AuditLogBase(BaseModel):
     """Base audit log schema."""
     event_type: str = Field(..., max_length=100)
@@ -391,7 +392,7 @@ class AuditLogSearch(BaseModel):
 class SecurityEventBase(BaseModel):
     """Base security event schema."""
     event_type: str = Field(..., max_length=100)
-    severity: str = Field(..., regex=r'^(low|medium|high|critical)$')
+    severity: str = Field(..., pattern=r'^(low|medium|high|critical)$')
     description: str = Field(..., min_length=1)
     ip_address: Optional[str] = Field(None, max_length=45)
     details: Optional[Dict[str, Any]] = None
@@ -418,7 +419,7 @@ class SecurityEventResponse(SecurityEventBase):
 
 class SecurityEventSearch(BaseModel):
     """Schema for security event search requests."""
-    severity: Optional[str] = Field(None, regex=r'^(low|medium|high|critical)$')
+    severity: Optional[str] = Field(None, pattern=r'^(low|medium|high|critical)$')
     resolved: Optional[bool] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None

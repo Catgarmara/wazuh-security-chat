@@ -345,7 +345,7 @@ async def record_system_metric(
 async def generate_usage_report(
     start_date: datetime = Query(..., description="Report start date"),
     end_date: datetime = Query(..., description="Report end date"),
-    format: str = Query(default="json", regex="^(json|csv)$", description="Report format"),
+    format: str = Query(default="json", pattern="^(json|csv)$", description="Report format"),
     current_user: User = Depends(admin_required),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:

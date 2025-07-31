@@ -336,6 +336,13 @@ def setup_middleware(app: FastAPI) -> None:
         requests_per_minute=100  # Adjust based on your needs
     )
     
+    # Input sanitization middleware
+    from core.input_sanitization import InputSanitizationMiddleware
+    app.add_middleware(
+        InputSanitizationMiddleware,
+        strict_paths=["/api/v1/auth/", "/api/v1/admin/"]
+    )
+    
     # Security headers middleware
     app.add_middleware(SecurityHeadersMiddleware)
     

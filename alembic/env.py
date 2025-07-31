@@ -9,7 +9,13 @@ from alembic import context
 
 # Import your models here
 from models.database import Base
-from core.config import get_settings
+
+# Try to import settings, but don't fail if not available
+try:
+    from core.config import get_settings
+    _settings_available = True
+except ImportError:
+    _settings_available = False
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -32,8 +38,14 @@ target_metadata = Base.metadata
 
 def get_database_url():
     """Get database URL from settings."""
-    settings = get_settings()
-    return settings.database.url
+    if _settings_available:
+        try:
+            settings = get_settings()
+            return settings.database.url
+        except Exception:
+            pass
+    # Fallback for testing or when settings are not available
+    return config.get_main_option("sqlalchemy.url")
 
 
 def run_migrations_offline() -> None:

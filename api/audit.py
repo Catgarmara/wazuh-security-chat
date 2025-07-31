@@ -23,7 +23,7 @@ from models.schemas import (
     PaginatedResponse, ErrorResponse
 )
 from services.audit_service import get_audit_service, AuditEventType, SecurityEventSeverity
-from services.auth_service import get_current_user
+from core.permissions import get_current_user
 
 router = APIRouter(prefix="/audit", tags=["audit"])
 audit_service = get_audit_service()
@@ -95,7 +95,7 @@ async def get_audit_logs(
     description="Retrieve security events with optional filtering"
 )
 async def get_security_events(
-    severity: Optional[str] = Query(None, regex=r'^(low|medium|high|critical)$', description="Filter by severity"),
+    severity: Optional[str] = Query(None, pattern=r'^(low|medium|high|critical)$', description="Filter by severity"),
     resolved: Optional[bool] = Query(None, description="Filter by resolution status"),
     start_time: Optional[datetime] = Query(None, description="Filter by start time"),
     end_time: Optional[datetime] = Query(None, description="Filter by end time"),

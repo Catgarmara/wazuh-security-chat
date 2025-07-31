@@ -17,6 +17,8 @@ from api.chat import router as chat_router
 from api.logs import router as logs_router
 from api.websocket import router as websocket_router
 from api.audit import router as audit_router
+from api.analytics import router as analytics_router
+from api.ai import router as ai_router
 
 
 @asynccontextmanager
@@ -74,6 +76,10 @@ def create_app() -> FastAPI:
     from core.audit_middleware import setup_audit_middleware
     setup_audit_middleware(app)
     
+    # Add security middleware
+    from core.middleware import setup_middleware
+    setup_middleware(app)
+    
     # Add metrics middleware
     setup_metrics_middleware(app)
     
@@ -107,6 +113,8 @@ def create_app() -> FastAPI:
     app.include_router(chat_router, prefix=settings.api_prefix)
     app.include_router(logs_router, prefix=settings.api_prefix)
     app.include_router(audit_router, prefix=settings.api_prefix)
+    app.include_router(analytics_router, prefix=settings.api_prefix)
+    app.include_router(ai_router, prefix=settings.api_prefix)
     app.include_router(websocket_router)  # WebSocket routes don't need API prefix
     
     return app

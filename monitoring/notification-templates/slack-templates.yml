@@ -1,0 +1,130 @@
+# Slack notification templates for different alert severities
+
+critical_slack_template: |
+  {
+    "channel": "#alerts-critical",
+    "username": "Wazuh Monitor",
+    "icon_emoji": ":rotating_light:",
+    "attachments": [
+      {
+        "color": "danger",
+        "title": "🚨 CRITICAL ALERT",
+        "title_link": "http://grafana.local/d/wazuh-alerts",
+        "fields": [
+          {
+            "title": "Alert",
+            "value": "{{ .GroupLabels.alertname }}",
+            "short": true
+          },
+          {
+            "title": "Service",
+            "value": "{{ .CommonLabels.service }}",
+            "short": true
+          },
+          {
+            "title": "Environment",
+            "value": "{{ .CommonLabels.environment | default \"production\" }}",
+            "short": true
+          },
+          {
+            "title": "Severity",
+            "value": "{{ .CommonLabels.severity | upper }}",
+            "short": true
+          }
+        ],
+        "text": "{{ range .Alerts }}*Summary:* {{ .Annotations.summary }}\n*Description:* {{ .Annotations.description }}\n*Started:* {{ .StartsAt | date \"2006-01-02 15:04:05 UTC\" }}{{ end }}",
+        "footer": "Wazuh AI Companion",
+        "ts": {{ .Alerts.Firing | len | printf "%.0f" }}
+      }
+    ]
+  }
+
+warning_slack_template: |
+  {
+    "channel": "#alerts-warning",
+    "username": "Wazuh Monitor",
+    "icon_emoji": ":warning:",
+    "attachments": [
+      {
+        "color": "warning",
+        "title": "⚠️ WARNING ALERT",
+        "title_link": "http://grafana.local/d/wazuh-alerts",
+        "fields": [
+          {
+            "title": "Alert",
+            "value": "{{ .GroupLabels.alertname }}",
+            "short": true
+          },
+          {
+            "title": "Service",
+            "value": "{{ .CommonLabels.service }}",
+            "short": true
+          }
+        ],
+        "text": "{{ range .Alerts }}*Summary:* {{ .Annotations.summary }}\n*Description:* {{ .Annotations.description }}{{ end }}",
+        "footer": "Wazuh AI Companion",
+        "ts": {{ .Alerts.Firing | len | printf "%.0f" }}
+      }
+    ]
+  }
+
+info_slack_template: |
+  {
+    "channel": "#alerts-info",
+    "username": "Wazuh Monitor",
+    "icon_emoji": ":information_source:",
+    "attachments": [
+      {
+        "color": "good",
+        "title": "ℹ️ INFO ALERT",
+        "title_link": "http://grafana.local/d/wazuh-alerts",
+        "fields": [
+          {
+            "title": "Alert",
+            "value": "{{ .GroupLabels.alertname }}",
+            "short": true
+          },
+          {
+            "title": "Service",
+            "value": "{{ .CommonLabels.service }}",
+            "short": true
+          }
+        ],
+        "text": "{{ range .Alerts }}*Summary:* {{ .Annotations.summary }}{{ end }}",
+        "footer": "Wazuh AI Companion"
+      }
+    ]
+  }
+
+resolved_slack_template: |
+  {
+    "channel": "#alerts-resolved",
+    "username": "Wazuh Monitor",
+    "icon_emoji": ":white_check_mark:",
+    "attachments": [
+      {
+        "color": "good",
+        "title": "✅ ALERT RESOLVED",
+        "title_link": "http://grafana.local/d/wazuh-alerts",
+        "fields": [
+          {
+            "title": "Alert",
+            "value": "{{ .GroupLabels.alertname }}",
+            "short": true
+          },
+          {
+            "title": "Service",
+            "value": "{{ .CommonLabels.service }}",
+            "short": true
+          },
+          {
+            "title": "Duration",
+            "value": "{{ range .Alerts }}{{ .EndsAt.Sub .StartsAt | humanizeDuration }}{{ end }}",
+            "short": true
+          }
+        ],
+        "text": "{{ range .Alerts }}*Summary:* {{ .Annotations.summary }}\n*Resolved:* {{ .EndsAt | date \"2006-01-02 15:04:05 UTC\" }}{{ end }}",
+        "footer": "Wazuh AI Companion"
+      }
+    ]
+  }
