@@ -1,0 +1,406 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Wazuh AI Companion - Comprehensive Metrics",
+    "tags": ["wazuh", "business", "security", "comprehensive"],
+    "style": "dark",
+    "timezone": "browser",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "refresh": "1m",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Security Alerts Generated",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(wazuh_security_alerts_generated_total[5m])",
+            "legendFormat": "{{severity}} - {{alert_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Log Analysis Accuracy",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "wazuh_log_analysis_accuracy",
+            "legendFormat": "Accuracy Score"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Threat Detection Latency",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(wazuh_threat_detection_latency_seconds_bucket[5m]))",
+            "legendFormat": "95th Percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(wazuh_threat_detection_latency_seconds_bucket[5m]))",
+            "legendFormat": "Median"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 6}
+      },
+      {
+        "id": 4,
+        "title": "User Query Complexity",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "wazuh_query_complexity_score",
+            "legendFormat": "Complexity Score"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "none",
+            "min": 1,
+            "max": 10
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 6}
+      },
+      {
+        "id": 5,
+        "title": "User Satisfaction Score",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg_over_time(wazuh_user_satisfaction_score[1h])",
+            "legendFormat": "Average Satisfaction"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 1},
+                {"color": "yellow", "value": 3},
+                {"color": "green", "value": 4}
+              ]
+            },
+            "unit": "none",
+            "min": 1,
+            "max": 5
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 12}
+      },
+      {
+        "id": 6,
+        "title": "Active Chat Sessions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "wazuh_chat_sessions_active",
+            "legendFormat": "Active Sessions"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 12}
+      },
+      {
+        "id": 7,
+        "title": "AI Query Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(rate(wazuh_ai_queries_total{status=\"success\"}[1h]) / rate(wazuh_ai_queries_total[1h])) * 100",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 90},
+                {"color": "green", "value": 95}
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 12}
+      },
+      {
+        "id": 8,
+        "title": "System Uptime",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"wazuh-app\"}",
+            "legendFormat": "Application Uptime"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"options": {"0": {"text": "DOWN"}}, "type": "value"},
+              {"options": {"1": {"text": "UP"}}, "type": "value"}
+            ]
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 12}
+      },
+      {
+        "id": 9,
+        "title": "HTTP Request Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(wazuh_http_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}} - {{status_code}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 10,
+        "title": "WebSocket Activity",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "wazuh_websocket_connections_active",
+            "legendFormat": "Active Connections"
+          },
+          {
+            "expr": "rate(wazuh_websocket_messages_total[5m])",
+            "legendFormat": "{{direction}} Messages/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 11,
+        "title": "Authentication Metrics",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(wazuh_auth_attempts_total[5m])",
+            "legendFormat": "{{status}} - {{method}}"
+          },
+          {
+            "expr": "rate(wazuh_auth_tokens_issued_total[5m])",
+            "legendFormat": "Tokens Issued"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 22}
+      },
+      {
+        "id": 12,
+        "title": "Log Processing Metrics",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(wazuh_log_entries_processed_total[5m])",
+            "legendFormat": "{{source}} - {{status}}"
+          },
+          {
+            "expr": "rate(wazuh_log_files_loaded_total[5m])",
+            "legendFormat": "Files Loaded - {{status}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 22}
+      },
+      {
+        "id": 13,
+        "title": "Vector Search Performance",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(wazuh_ai_vector_search_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th Percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(wazuh_ai_vector_search_duration_seconds_bucket[5m]))",
+            "legendFormat": "Median"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 28}
+      },
+      {
+        "id": 14,
+        "title": "LLM Request Performance",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(wazuh_ai_llm_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th Percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(wazuh_ai_llm_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "Median"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 28}
+      },
+      {
+        "id": 15,
+        "title": "Session Duration Distribution",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(wazuh_session_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th Percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(wazuh_session_duration_seconds_bucket[5m]))",
+            "legendFormat": "Median"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 34}
+      },
+      {
+        "id": 16,
+        "title": "Queries per Session",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(wazuh_user_queries_per_session_bucket[5m]))",
+            "legendFormat": "95th Percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(wazuh_user_queries_per_session_bucket[5m]))",
+            "legendFormat": "Median"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "none"
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 34}
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "service",
+          "type": "query",
+          "query": "label_values(wazuh_health_check_status, service)",
+          "refresh": 1,
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "expr": "changes(wazuh_app_info[1h])",
+          "titleFormat": "Deployment",
+          "textFormat": "Application restarted"
+        }
+      ]
+    },
+    "schemaVersion": 30,
+    "version": 1,
+    "links": [
+      {
+        "title": "Health Monitoring",
+        "url": "/d/health-monitoring",
+        "type": "dashboards"
+      },
+      {
+        "title": "Infrastructure Metrics",
+        "url": "/d/infrastructure",
+        "type": "dashboards"
+      }
+    ]
+  }
+}

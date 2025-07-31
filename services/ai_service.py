@@ -769,6 +769,23 @@ Answer:"""
         except Exception as e:
             raise AIProcessingError(f"Failed to perform incremental update: {str(e)}")
     
+    async def _test_llm_connection(self) -> bool:
+        """
+        Test LLM connection with a simple query.
+        
+        Returns:
+            bool: True if LLM is responsive, False otherwise
+        """
+        try:
+            if not self.llm:
+                return False
+            
+            # Simple test query
+            test_response = self.llm.invoke("Hello")
+            return bool(test_response and len(str(test_response).strip()) > 0)
+        except Exception:
+            return False
+    
     def get_vectorstore_info(self) -> Dict[str, Any]:
         """
         Get information about the current vector store.
@@ -791,4 +808,201 @@ Answer:"""
                 "saved_vectorstores": len(self.list_saved_vectorstores())
             }
         except Exception as e:
-            return {"status": "error", "error": str(e)}
+            return {
+                "status": "error",
+                "error": str(e),
+                "document_count": 0
+            }
+    
+    def backup_vectorstore_to_path(self, backup_path: str, identifier: str = "default") -> bool:
+        """
+        Backup vector store to a specific path for disaster recovery.
+        
+        Args:
+            backup_path: Path where to save the backup
+            identifier: Identifier for the vector store to backup
+            
+        Returns:
+            True if backup was successful, False otherwise
+        """
+        try:
+            import shutil
+            
+            # Ensure vector store is saved locally first
+            if self.vectorstore:
+                self.save_vectorstore(identifier)
+            
+            # Source directory
+            source_dir = self.vectorstore_path / identifier
+            if not source_dir.exists():
+                return False
+            
+            # Create backup directory
+            backup_dir = Path(backup_path)
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Copy vector store data
+            target_dir = backup_dir / identifier
+            if target_dir.exists():
+                shutil.rmtree(target_dir)
+            
+            shutil.copytree(source_dir, target_dir)
+            
+            # Create backup manifest
+            manifest = {
+                "identifier": identifier,
+                "backup_timestamp": datetime.now().isoformat(),
+                "source_path": str(source_dir),
+                "backup_path": str(target_dir),
+                "embedding_model": self.embedding_model_name,
+                "document_count": self.vectorstore.index.ntotal if hasattr(self.vectorstore, 'index') else 0
+            }
+            
+            manifest_path = backup_dir / f"vectorstore_backup_manifest_{identifier}.json"
+            with open(manifest_path, 'w') as f:
+                json.dump(manifest, f, indent=2)
+            
+            return True
+            
+        except Exception as e:
+            raise AIProcessingError(f"Failed to backup vector store: {str(e)}")
+    
+    def restore_vectorstore_from_path(self, backup_path: str, identifier: str = "default") -> bool:
+        """
+        Restore vector store from a backup path.
+        
+        Args:
+            backup_path: Path where the backup is located
+            identifier: Identifier for the vector store to restore
+            
+        Returns:
+            True if restore was successful, False otherwise
+        """
+        try:
+            import shutil
+            
+            backup_dir = Path(backup_path)
+            source_dir = backup_dir / identifier
+            
+            if not source_dir.exists():
+                return False
+            
+            # Verify backup manifest
+            manifest_path = backup_dir / f"vectorstore_backup_manifest_{identifier}.json"
+            if manifest_path.exists():
+                with open(manifest_path, 'r') as f:
+                    manifest = json.load(f)
+                
+                # Check model compatibility
+                if manifest.get("embedding_model") != self.embedding_model_name:
+                    raise AIProcessingError(
+                        f"Embedding model mismatch: expected {self.embedding_model_name}, "
+                        f"found {manifest.get('embedding_model')}"
+                    )
+            
+            # Target directory
+            target_dir = self.vectorstore_path / identifier
+            
+            # Remove existing vector store
+            if target_dir.exists():
+                shutil.rmtree(target_dir)
+            
+            # Copy backup to target location
+            shutil.copytree(source_dir, target_dir)
+            
+            # Load the restored vector store
+            return self.load_vectorstore(identifier)
+            
+        except Exception as e:
+            raise AIProcessingError(f"Failed to restore vector store: {str(e)}")
+    
+    def verify_vectorstore_backup(self, backup_path: str, identifier: str = "default") -> Dict[str, Any]:
+        """
+        Verify the integrity of a vector store backup.
+        
+        Args:
+            backup_path: Path where the backup is located
+            identifier: Identifier for the vector store to verify
+            
+        Returns:
+            Dictionary containing verification results
+        """
+        try:
+            backup_dir = Path(backup_path)
+            source_dir = backup_dir / identifier
+            manifest_path = backup_dir / f"vectorstore_backup_manifest_{identifier}.json"
+            
+            verification_result = {
+                "valid": False,
+                "errors": [],
+                "warnings": [],
+                "manifest_found": False,
+                "files_found": False,
+                "model_compatible": False
+            }
+            
+            # Check if backup directory exists
+            if not source_dir.exists():
+                verification_result["errors"].append(f"Backup directory not found: {source_dir}")
+                return verification_result
+            
+            # Check for required files
+            faiss_index_path = source_dir / "faiss_index.faiss"
+            faiss_pkl_path = source_dir / "faiss_index.pkl"
+            metadata_path = source_dir / "metadata.json"
+            
+            if not (faiss_index_path.exists() and faiss_pkl_path.exists() and metadata_path.exists()):
+                verification_result["errors"].append("Required FAISS files not found")
+            else:
+                verification_result["files_found"] = True
+            
+            # Check manifest
+            if manifest_path.exists():
+                verification_result["manifest_found"] = True
+                try:
+                    with open(manifest_path, 'r') as f:
+                        manifest = json.load(f)
+                    
+                    # Check model compatibility
+                    if manifest.get("embedding_model") == self.embedding_model_name:
+                        verification_result["model_compatible"] = True
+                    else:
+                        verification_result["warnings"].append(
+                            f"Embedding model mismatch: backup has {manifest.get('embedding_model')}, "
+                            f"current is {self.embedding_model_name}"
+                        )
+                except Exception as e:
+                    verification_result["errors"].append(f"Failed to read manifest: {str(e)}")
+            else:
+                verification_result["warnings"].append("Backup manifest not found")
+            
+            # Check metadata
+            if metadata_path.exists():
+                try:
+                    with open(metadata_path, 'r') as f:
+                        metadata = json.load(f)
+                    
+                    if metadata.get("embedding_model") != self.embedding_model_name:
+                        verification_result["warnings"].append(
+                            f"Metadata embedding model mismatch: {metadata.get('embedding_model')} vs {self.embedding_model_name}"
+                        )
+                except Exception as e:
+                    verification_result["errors"].append(f"Failed to read metadata: {str(e)}")
+            
+            # Overall validation
+            verification_result["valid"] = (
+                verification_result["files_found"] and 
+                len(verification_result["errors"]) == 0
+            )
+            
+            return verification_result
+            
+        except Exception as e:
+            return {
+                "valid": False,
+                "errors": [f"Verification failed: {str(e)}"],
+                "warnings": [],
+                "manifest_found": False,
+                "files_found": False,
+                "model_compatible": False
+            }

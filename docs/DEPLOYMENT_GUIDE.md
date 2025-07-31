@@ -1,449 +1,464 @@
 # Wazuh AI Companion - Deployment Guide
 
-## Overview
-
-This guide provides comprehensive instructions for deploying the Wazuh AI Companion system in various environments, from local development to production Kubernetes clusters.
+This comprehensive guide covers deployment of the Wazuh AI Companion in different environments using Docker Compose and Kubernetes.
 
 ## Table of Contents
 
 1. [Prerequisites](#prerequisites)
-2. [Environment Configuration](#environment-configuration)
-3. [Local Development Deployment](#local-development-deployment)
-4. [Docker Deployment](#docker-deployment)
+2. [Quick Start](#quick-start)
+3. [Environment Configurations](#environment-configurations)
+4. [Docker Compose Deployment](#docker-compose-deployment)
 5. [Kubernetes Deployment](#kubernetes-deployment)
-6. [Production Deployment](#production-deployment)
-7. [Monitoring and Observability](#monitoring-and-observability)
+6. [Monitoring Setup](#monitoring-setup)
+7. [Production Considerations](#production-considerations)
 8. [Troubleshooting](#troubleshooting)
-9. [Maintenance and Updates](#maintenance-and-updates)
+9. [Maintenance](#maintenance)
 
 ## Prerequisites
 
 ### System Requirements
 
-- **CPU**: Minimum 4 cores, Recommended 8+ cores
-- **Memory**: Minimum 8GB RAM, Recommended 16GB+ RAM
-- **Storage**: Minimum 50GB, Recommended 100GB+ SSD
-- **Network**: Stable internet connection for AI model downloads
+**Minimum Requirements:**
+- CPU: 4 cores
+- RAM: 8GB
+- Storage: 50GB
+- OS: Linux, macOS, or Windows with WSL2
+
+**Recommended for Production:**
+- CPU: 8+ cores
+- RAM: 16GB+
+- Storage: 100GB+ SSD
+- OS: Linux (Ubuntu 20.04+ or CentOS 8+)
 
 ### Software Dependencies
 
-- **Python**: 3.11 or higher
-- **Docker**: 20.10 or higher
-- **Docker Compose**: 2.0 or higher
-- **Kubernetes**: 1.25 or higher (for K8s deployment)
-- **kubectl**: Compatible with your Kubernetes version
+**Required:**
+- Docker 24.0+
+- Docker Compose 2.0+
+- Git
 
-### External Services
+**Optional (for Kubernetes):**
+- kubectl 1.25+
+- Helm 3.0+
+- Kubernetes cluster (1.25+)
 
-- **PostgreSQL**: 13 or higher
-- **Redis**: 6 or higher
-- **Ollama**: For LLM processing (can be local or remote)
+**Optional (for GPU support):**
+- NVIDIA Docker runtime
+- CUDA 11.8+
 
-## Environment Configuration
-
-### Environment Variables
-
-Create a `.env` file in the project root with the following variables:
+### Installation Commands
 
 ```bash
-# Application Configuration
-APP_NAME=Wazuh AI Companion
-APP_VERSION=2.0.0
-ENVIRONMENT=production
-DEBUG=false
-HOST=0.0.0.0
-PORT=8000
-LOG_LEVEL=INFO
-API_PREFIX=/api/v1
+# Ubuntu/Debian
+sudo apt update
+sudo apt install -y docker.io docker-compose-plugin git curl
 
-# Security Configuration
-SECRET_KEY=your-super-secret-key-at-least-32-characters-long
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_DAYS=7
-BCRYPT_ROUNDS=12
+# CentOS/RHEL
+sudo yum install -y docker docker-compose git curl
 
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=wazuh_chat
-DB_USER=wazuh_user
-DB_PASSWORD=secure_password
-DB_POOL_SIZE=10
-DB_MAX_OVERFLOW=20
+# macOS (with Homebrew)
+brew install docker docker-compose git
 
-# Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_DB=0
-REDIS_PASSWORD=redis_password
-REDIS_MAX_CONNECTIONS=20
+# Start Docker service
+sudo systemctl start docker
+sudo systemctl enable docker
 
-# AI Configuration
-OLLAMA_HOST=localhost
-OLLAMA_PORT=11434
-OLLAMA_MODEL=llama3
-EMBEDDING_MODEL=all-MiniLM-L6-v2
-CHUNK_SIZE=500
-CHUNK_OVERLAP=50
-MAX_TOKENS=2048
-TEMPERATURE=0.7
-
-# Log Processing Configuration
-WAZUH_LOGS_PATH=/var/ossec/logs/archives
-DEFAULT_DAYS_RANGE=7
-MAX_DAYS_RANGE=365
-SSH_TIMEOUT=10
-LOG_BATCH_SIZE=1000
-
-# CORS Configuration
-CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
+# Add user to docker group
+sudo usermod -aG docker $USER
 ```
 
-### Security Considerations
+## Quick Start
 
-1. **Secret Key**: Generate a strong secret key:
-   ```bash
-   python -c "import secrets; print(secrets.token_urlsafe(32))"
-   ```
-
-2. **Database Passwords**: Use strong, unique passwords
-3. **SSL/TLS**: Always use HTTPS in production
-4. **Network Security**: Restrict access to internal services
-
-## Local Development Deployment
-
-### 1. Clone and Setup
+### 1. Clone Repository
 
 ```bash
-# Clone the repository
 git clone https://github.com/your-org/wazuh-ai-companion.git
 cd wazuh-ai-companion
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
 ```
 
-### 2. Setup Local Services
+### 2. Development Deployment
 
 ```bash
-# Start PostgreSQL and Redis using Docker
-docker-compose -f docker-compose.dev.yml up -d postgres redis
+# Test deployment configuration
+python3 scripts/test-deployment.py
 
-# Initialize database
-python scripts/init_db.py
+# Deploy development environment
+python3 scripts/deploy.py deploy --environment development
 
-# Start Ollama (if running locally)
-docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
-docker exec -it ollama ollama pull llama3
+# Or use Docker Compose directly
+docker-compose up -d --build
 ```
 
-### 3. Run the Application
+### 3. Access Services
 
-```bash
-# Start the application
-python main.py --reload
+- **Application**: http://localhost:8000
+- **Health Check**: http://localhost:8000/health
+- **Metrics**: http://localhost:8000/metrics
+- **Grafana**: http://localhost:3000 (admin/admin)
+- **Prometheus**: http://localhost:9090
 
-# Or using uvicorn directly
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+## Environment Configurations
+
+### Development Environment
+
+**Purpose**: Local development and testing
+**Features**: 
+- Hot reloading
+- Debug mode enabled
+- Full monitoring stack
+- Sample data
+
+**Configuration**:
+```yaml
+environment: development
+debug: true
+compose_file: docker-compose.yml
+profiles: [monitoring]
 ```
 
-### 4. Verify Installation
+### Staging Environment
 
-```bash
-# Check health endpoint
-curl http://localhost:8000/health
+**Purpose**: Pre-production testing
+**Features**:
+- Production-like configuration
+- Monitoring enabled
+- Performance testing
+- Security hardening
 
-# Check metrics endpoint
-curl http://localhost:8000/metrics
-
-# Check API documentation
-open http://localhost:8000/docs
+**Configuration**:
+```yaml
+environment: staging
+debug: false
+compose_file: docker-compose.prod.yml
+profiles: [monitoring]
 ```
 
-## Docker Deployment
+### Production Environment
 
-### 1. Build Docker Image
+**Purpose**: Live production deployment
+**Features**:
+- Optimized performance
+- Security hardened
+- High availability
+- Backup enabled
 
-```bash
-# Build the application image
-docker build -t wazuh-ai-companion:latest .
-
-# Or build with specific tag
-docker build -t wazuh-ai-companion:v2.0.0 .
+**Configuration**:
+```yaml
+environment: production
+debug: false
+compose_file: docker-compose.prod.yml
+profiles: []
 ```
 
-### 2. Docker Compose Deployment
+## Docker Compose Deployment
+
+### Development Deployment
 
 ```bash
-# Start all services
-docker-compose up -d
+# Start all services with monitoring
+docker-compose --profile monitoring up -d --build
 
 # View logs
 docker-compose logs -f
 
-# Scale the application
-docker-compose up -d --scale app=3
+# Check service status
+docker-compose ps
+
+# Stop services
+docker-compose down
 ```
 
-### 3. Docker Compose Configuration
+### Production Deployment
 
-Create `docker-compose.prod.yml`:
+```bash
+# Create production environment file
+cp .env.example .env.production
+# Edit .env.production with secure values
 
+# Deploy production stack
+python3 scripts/deploy.py deploy --environment production
+
+# Or manually with Docker Compose
+docker-compose -f docker-compose.prod.yml up -d --build
+
+# Check deployment health
+python3 scripts/test-deployment.py
+```
+
+### Service Configuration
+
+#### Application Service
 ```yaml
-version: '3.8'
+app:
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: production
+  environment:
+    - ENVIRONMENT=production
+    - DEBUG=false
+  deploy:
+    replicas: 2
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 1G
+```
 
-services:
-  app:
-    image: wazuh-ai-companion:latest
-    ports:
-      - "8000:8000"
-    environment:
-      - ENVIRONMENT=production
-      - DB_HOST=postgres
-      - REDIS_HOST=redis
-      - OLLAMA_HOST=ollama
-    depends_on:
-      - postgres
-      - redis
-      - ollama
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+#### Database Service
+```yaml
+postgres:
+  image: postgres:15-alpine
+  environment:
+    - POSTGRES_DB=${DB_NAME}
+    - POSTGRES_USER=${DB_USER}
+    - POSTGRES_PASSWORD=${DB_PASSWORD}
+  volumes:
+    - postgres_data:/var/lib/postgresql/data
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 1G
+```
 
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: wazuh_chat
-      POSTGRES_USER: wazuh_user
-      POSTGRES_PASSWORD: secure_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  redis:
-    image: redis:7
-    command: redis-server --requirepass redis_password
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-
-  ollama:
-    image: ollama/ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
-    depends_on:
-      - app
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
-  redis_data:
-  ollama_data:
+#### Redis Service
+```yaml
+redis:
+  image: redis:7-alpine
+  volumes:
+    - redis_data:/data
+    - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+  command: redis-server /usr/local/etc/redis/redis.conf
 ```
 
 ## Kubernetes Deployment
 
-### 1. Prerequisites
+### Prerequisites
 
 ```bash
-# Ensure kubectl is configured
-kubectl cluster-info
+# Install kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
-# Create namespace
-kubectl create namespace wazuh-ai-companion
+# Verify cluster access
+kubectl cluster-info
 ```
 
-### 2. Deploy Dependencies
+### Deployment Steps
 
 ```bash
+# Create namespace
+kubectl apply -f kubernetes/namespace.yaml
+
+# Create secrets
+kubectl apply -f kubernetes/secrets.yaml
+
+# Create persistent volumes
+kubectl apply -f kubernetes/persistent-volumes.yaml
+
 # Deploy PostgreSQL
 kubectl apply -f kubernetes/postgres-deployment.yaml
 
 # Deploy Redis
 kubectl apply -f kubernetes/redis-deployment.yaml
 
-# Deploy Ollama
+# Deploy Ollama (optional)
 kubectl apply -f kubernetes/ollama-deployment.yaml
-```
 
-### 3. Deploy Application
-
-```bash
-# Create ConfigMap and Secrets
-kubectl apply -f kubernetes/configmap.yaml
-kubectl apply -f kubernetes/secrets.yaml
-
-# Deploy the application
+# Deploy application
 kubectl apply -f kubernetes/app-deployment.yaml
 
-# Deploy services and ingress
+# Deploy Nginx ingress
 kubectl apply -f kubernetes/nginx-deployment.yaml
+
+# Deploy monitoring (optional)
+kubectl apply -f kubernetes/monitoring-deployment.yaml
+
+# Configure auto-scaling
+kubectl apply -f kubernetes/hpa.yaml
 ```
 
-### 4. Verify Deployment
+### Verification
 
 ```bash
 # Check pod status
-kubectl get pods -n wazuh-ai-companion
+kubectl get pods -n wazuh
 
 # Check services
-kubectl get services -n wazuh-ai-companion
+kubectl get services -n wazuh
 
 # Check ingress
-kubectl get ingress -n wazuh-ai-companion
+kubectl get ingress -n wazuh
 
 # View logs
-kubectl logs -f deployment/wazuh-ai-companion -n wazuh-ai-companion
+kubectl logs -f deployment/wazuh-app -n wazuh
+
+# Port forward for testing
+kubectl port-forward service/wazuh-app 8000:8000 -n wazuh
 ```
 
-## Production Deployment
-
-### 1. Pre-deployment Checklist
-
-- [ ] Environment variables configured
-- [ ] SSL certificates obtained and configured
-- [ ] Database backups configured
-- [ ] Monitoring and alerting set up
-- [ ] Load balancer configured
-- [ ] DNS records configured
-- [ ] Security scanning completed
-- [ ] Performance testing completed
-
-### 2. Database Setup
+### Scaling
 
 ```bash
-# Create production database
-createdb -h your-db-host -U postgres wazuh_chat_prod
+# Manual scaling
+kubectl scale deployment wazuh-app --replicas=5 -n wazuh
 
-# Run migrations
-python scripts/init_db.py --environment production
+# Auto-scaling configuration
+kubectl autoscale deployment wazuh-app --cpu-percent=70 --min=3 --max=10 -n wazuh
 
-# Create database user
-psql -h your-db-host -U postgres -c "
-CREATE USER wazuh_prod WITH PASSWORD 'secure_production_password';
-GRANT ALL PRIVILEGES ON DATABASE wazuh_chat_prod TO wazuh_prod;
-"
+# Check HPA status
+kubectl get hpa -n wazuh
 ```
 
-### 3. SSL/TLS Configuration
+## Monitoring Setup
 
-```bash
-# Generate SSL certificate (using Let's Encrypt)
-certbot certonly --nginx -d yourdomain.com
+### Prometheus Configuration
 
-# Or use your existing certificates
-cp your-cert.pem /etc/ssl/certs/wazuh-ai-companion.pem
-cp your-key.pem /etc/ssl/private/wazuh-ai-companion.key
+```yaml
+# prometheus.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'wazuh-app'
+    static_configs:
+      - targets: ['app:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
 ```
 
-### 4. Production Deployment Steps
+### Grafana Dashboards
 
+Available dashboards:
+- **System Overview**: Application health and performance
+- **AI Performance**: AI query metrics and response times
+- **Business Metrics**: User engagement and security alerts
+- **Infrastructure**: System resources and container metrics
+- **Health Monitoring**: Service health and SLA compliance
+
+### Alerting Rules
+
+Critical alerts configured:
+- Application down
+- High error rates
+- Database connectivity issues
+- High resource usage
+- Security incidents
+
+## Production Considerations
+
+### Security
+
+#### SSL/TLS Configuration
 ```bash
-# 1. Deploy infrastructure components
-kubectl apply -f kubernetes/namespace.yaml
-kubectl apply -f kubernetes/persistent-volumes.yaml
-kubectl apply -f kubernetes/postgres-deployment.yaml
-kubectl apply -f kubernetes/redis-deployment.yaml
-
-# 2. Wait for infrastructure to be ready
-kubectl wait --for=condition=ready pod -l app=postgres --timeout=300s
-kubectl wait --for=condition=ready pod -l app=redis --timeout=300s
-
-# 3. Deploy application
-kubectl apply -f kubernetes/configmap.yaml
-kubectl apply -f kubernetes/secrets.yaml
-kubectl apply -f kubernetes/app-deployment.yaml
-
-# 4. Deploy ingress and load balancer
-kubectl apply -f kubernetes/nginx-deployment.yaml
-
-# 5. Configure auto-scaling
-kubectl apply -f kubernetes/hpa.yaml
-
-# 6. Verify deployment
-kubectl get all -n wazuh-ai-companion
+# Generate SSL certificates
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout nginx/ssl/key.pem \
+  -out nginx/ssl/cert.pem
 ```
 
-### 5. Post-deployment Verification
-
+#### Environment Variables
 ```bash
-# Health check
-curl -f https://yourdomain.com/health
-
-# Metrics check
-curl -f https://yourdomain.com/metrics
-
-# API functionality test
-curl -X POST https://yourdomain.com/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "admin_password"}'
-
-# WebSocket test
-wscat -c wss://yourdomain.com/ws/chat?token=your-jwt-token
+# Required production environment variables
+SECRET_KEY=your-secure-32-character-secret-key
+DB_PASSWORD=secure-database-password
+GRAFANA_PASSWORD=secure-grafana-password
 ```
 
-## Monitoring and Observability
+#### Network Security
+- Use private networks for internal communication
+- Configure firewall rules
+- Enable rate limiting
+- Implement proper authentication
 
-### 1. Prometheus and Grafana Setup
+### Performance Optimization
 
-```bash
-# Deploy monitoring stack
-kubectl apply -f monitoring/prometheus.yml
-kubectl apply -f monitoring/grafana/
-
-# Access Grafana dashboard
-kubectl port-forward svc/grafana 3000:3000
-# Open http://localhost:3000 (admin/admin)
+#### Database Tuning
+```sql
+-- PostgreSQL configuration
+ALTER SYSTEM SET shared_buffers = '256MB';
+ALTER SYSTEM SET effective_cache_size = '1GB';
+ALTER SYSTEM SET max_connections = 100;
 ```
 
-### 2. Log Aggregation
-
-```bash
-# Deploy ELK stack or use cloud logging
-kubectl apply -f monitoring/elasticsearch.yaml
-kubectl apply -f monitoring/logstash.yaml
-kubectl apply -f monitoring/kibana.yaml
+#### Redis Configuration
+```conf
+# redis.conf
+maxmemory 512mb
+maxmemory-policy allkeys-lru
+save 900 1
+save 300 10
+save 60 10000
 ```
 
-### 3. Alerting Configuration
-
+#### Application Tuning
 ```bash
-# Configure Alertmanager
-kubectl apply -f monitoring/alertmanager.yml
+# Uvicorn workers configuration
+uvicorn app.main:app --workers 4 --worker-connections 1000
+```
 
-# Set up notification channels (Slack, email, etc.)
-# Edit monitoring/notification-templates/
+### High Availability
+
+#### Load Balancing
+```nginx
+# nginx.conf
+upstream wazuh_app {
+    server app1:8000;
+    server app2:8000;
+    server app3:8000;
+}
+```
+
+#### Database Replication
+```yaml
+# PostgreSQL master-slave setup
+postgres-master:
+  image: postgres:15-alpine
+  environment:
+    - POSTGRES_REPLICATION_MODE=master
+    - POSTGRES_REPLICATION_USER=replicator
+    - POSTGRES_REPLICATION_PASSWORD=replication_password
+
+postgres-slave:
+  image: postgres:15-alpine
+  environment:
+    - POSTGRES_REPLICATION_MODE=slave
+    - POSTGRES_MASTER_HOST=postgres-master
+```
+
+### Backup Strategy
+
+#### Database Backup
+```bash
+# Automated backup script
+#!/bin/bash
+BACKUP_DIR="/backups/postgres"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+docker exec postgres pg_dump -U postgres wazuh_chat > \
+  "$BACKUP_DIR/wazuh_chat_$DATE.sql"
+
+# Retain only last 30 days
+find $BACKUP_DIR -name "*.sql" -mtime +30 -delete
+```
+
+#### Volume Backup
+```bash
+# Backup Docker volumes
+docker run --rm -v postgres_data:/data -v /backup:/backup \
+  alpine tar czf /backup/postgres_data_$(date +%Y%m%d).tar.gz -C /data .
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### 1. Application Won't Start
-
+#### Application Won't Start
 ```bash
 # Check logs
-kubectl logs deployment/wazuh-ai-companion -n wazuh-ai-companion
+docker-compose logs app
 
 # Common causes:
 # - Database connection issues
@@ -452,164 +467,196 @@ kubectl logs deployment/wazuh-ai-companion -n wazuh-ai-companion
 # - Insufficient resources
 ```
 
-#### 2. Database Connection Issues
-
+#### Database Connection Issues
 ```bash
-# Test database connectivity
-kubectl exec -it deployment/wazuh-ai-companion -- python -c "
-from core.database import get_db
-try:
-    db = next(get_db())
-    print('Database connection successful')
-except Exception as e:
-    print(f'Database connection failed: {e}')
+# Check PostgreSQL status
+docker-compose exec postgres pg_isready -U postgres
+
+# Check connection from app
+docker-compose exec app python -c "
+from core.database import engine
+print(engine.execute('SELECT 1').scalar())
 "
 ```
 
-#### 3. Redis Connection Issues
-
+#### High Memory Usage
 ```bash
-# Test Redis connectivity
-kubectl exec -it deployment/redis -- redis-cli ping
+# Check container resource usage
+docker stats
+
+# Check system resources
+free -h
+df -h
+
+# Optimize container limits
+docker-compose up -d --scale app=2
 ```
 
-#### 4. AI Service Issues
-
+#### Monitoring Issues
 ```bash
-# Check Ollama connectivity
-curl http://ollama-service:11434/api/tags
+# Check Prometheus targets
+curl http://localhost:9090/api/v1/targets
 
-# Check if models are loaded
-kubectl exec -it deployment/ollama -- ollama list
+# Check Grafana datasource
+curl -u admin:admin http://localhost:3000/api/datasources
+
+# Restart monitoring stack
+docker-compose --profile monitoring restart
 ```
 
 ### Performance Issues
 
-#### 1. High Memory Usage
+#### Slow Database Queries
+```sql
+-- Enable query logging
+ALTER SYSTEM SET log_statement = 'all';
+ALTER SYSTEM SET log_min_duration_statement = 1000;
 
-```bash
-# Check memory usage
-kubectl top pods -n wazuh-ai-companion
-
-# Scale up resources
-kubectl patch deployment wazuh-ai-companion -p '{"spec":{"template":{"spec":{"containers":[{"name":"app","resources":{"requests":{"memory":"2Gi"},"limits":{"memory":"4Gi"}}}]}}}}'
+-- Check slow queries
+SELECT query, mean_time, calls 
+FROM pg_stat_statements 
+ORDER BY mean_time DESC 
+LIMIT 10;
 ```
 
-#### 2. Slow Response Times
-
+#### High CPU Usage
 ```bash
-# Check application metrics
-curl https://yourdomain.com/metrics | grep http_request_duration
+# Check container CPU usage
+docker stats --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
 
-# Scale horizontally
-kubectl scale deployment wazuh-ai-companion --replicas=5
+# Profile application
+docker-compose exec app python -m cProfile -o profile.stats app/main.py
 ```
 
-## Maintenance and Updates
+### Log Analysis
 
-### 1. Regular Maintenance Tasks
-
+#### Application Logs
 ```bash
-# Update dependencies
-pip-compile requirements.in
-pip-compile requirements-test.in
+# View real-time logs
+docker-compose logs -f app
 
-# Database maintenance
-python scripts/db_manager.py --vacuum
-python scripts/db_manager.py --analyze
+# Search logs
+docker-compose logs app | grep ERROR
 
-# Clean up old logs
-kubectl exec -it deployment/wazuh-ai-companion -- python -c "
-from services.analytics_service import AnalyticsService
-analytics = AnalyticsService()
-deleted = analytics.cleanup_old_metrics(days_to_keep=90)
-print(f'Cleaned up {deleted} old metrics')
-"
+# Export logs
+docker-compose logs app > app_logs_$(date +%Y%m%d).log
 ```
 
-### 2. Application Updates
-
+#### System Logs
 ```bash
+# Check Docker daemon logs
+sudo journalctl -u docker.service
+
+# Check system resources
+dmesg | grep -i memory
+dmesg | grep -i oom
+```
+
+## Maintenance
+
+### Regular Maintenance Tasks
+
+#### Daily
+- Monitor application health
+- Check error logs
+- Verify backup completion
+- Review security alerts
+
+#### Weekly
+- Update security patches
+- Clean up old logs
+- Review performance metrics
+- Test backup restoration
+
+#### Monthly
+- Update dependencies
+- Review and rotate secrets
+- Capacity planning review
+- Security audit
+
+### Update Procedures
+
+#### Application Updates
+```bash
+# Pull latest code
+git pull origin main
+
+# Build new images
+docker-compose build --no-cache
+
 # Rolling update
-kubectl set image deployment/wazuh-ai-companion app=wazuh-ai-companion:v2.1.0
+docker-compose up -d --no-deps app
 
-# Monitor rollout
-kubectl rollout status deployment/wazuh-ai-companion
-
-# Rollback if needed
-kubectl rollout undo deployment/wazuh-ai-companion
+# Verify deployment
+python3 scripts/test-deployment.py
 ```
 
-### 3. Database Migrations
-
+#### Database Migrations
 ```bash
-# Backup database before migration
-kubectl exec -it deployment/postgres -- pg_dump -U wazuh_user wazuh_chat > backup.sql
-
 # Run migrations
-python scripts/migrate.py --version latest
+docker-compose exec app alembic upgrade head
 
 # Verify migration
-python scripts/db_manager.py --check-health
+docker-compose exec app alembic current
 ```
 
-### 4. Security Updates
-
+#### Security Updates
 ```bash
 # Update base images
-docker pull python:3.11-slim
-docker pull postgres:15
-docker pull redis:7
+docker-compose pull
 
-# Rebuild and deploy
-docker build -t wazuh-ai-companion:v2.1.0 .
-kubectl set image deployment/wazuh-ai-companion app=wazuh-ai-companion:v2.1.0
+# Rebuild with latest patches
+docker-compose build --pull --no-cache
+
+# Deploy updates
+docker-compose up -d
 ```
 
-## Backup and Recovery
+### Monitoring and Alerting
 
-### 1. Database Backup
-
+#### Health Checks
 ```bash
-# Automated backup script
+# Automated health check script
 #!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
-kubectl exec -it deployment/postgres -- pg_dump -U wazuh_user wazuh_chat | gzip > backup_${DATE}.sql.gz
-aws s3 cp backup_${DATE}.sql.gz s3://your-backup-bucket/database/
+curl -f http://localhost:8000/health || exit 1
+curl -f http://localhost:9090/-/ready || exit 1
+curl -f http://localhost:3000/api/health || exit 1
 ```
 
-### 2. Application State Backup
-
+#### Performance Monitoring
 ```bash
-# Backup Redis data
-kubectl exec -it deployment/redis -- redis-cli BGSAVE
-kubectl cp redis-pod:/data/dump.rdb ./redis_backup_$(date +%Y%m%d).rdb
-
-# Backup vector store data
-kubectl exec -it deployment/wazuh-ai-companion -- tar -czf /tmp/vectorstore.tar.gz /app/data/vectorstore
-kubectl cp wazuh-ai-companion-pod:/tmp/vectorstore.tar.gz ./vectorstore_backup_$(date +%Y%m%d).tar.gz
+# Resource usage monitoring
+docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}\t{{.BlockIO}}"
 ```
 
-### 3. Disaster Recovery
-
+#### Log Monitoring
 ```bash
-# Restore database
-kubectl exec -i deployment/postgres -- psql -U wazuh_user wazuh_chat < backup.sql
+# Error rate monitoring
+docker-compose logs app --since 1h | grep -c ERROR
 
-# Restore Redis
-kubectl cp redis_backup.rdb redis-pod:/data/dump.rdb
-kubectl exec -it deployment/redis -- redis-cli DEBUG RESTART
-
-# Restore vector store
-kubectl cp vectorstore_backup.tar.gz wazuh-ai-companion-pod:/tmp/
-kubectl exec -it deployment/wazuh-ai-companion -- tar -xzf /tmp/vectorstore_backup.tar.gz -C /app/data/
+# Response time monitoring
+curl -w "@curl-format.txt" -o /dev/null -s http://localhost:8000/health
 ```
 
 ## Support and Documentation
 
-- **API Documentation**: https://yourdomain.com/docs
-- **Monitoring Dashboard**: https://yourdomain.com/grafana
-- **Health Checks**: https://yourdomain.com/health
-- **Metrics**: https://yourdomain.com/metrics
+### Additional Resources
 
-For additional support, please refer to the project repository or contact the development team.
+- [API Documentation](./API_DOCUMENTATION.md)
+- [Configuration Reference](./CONFIGURATION.md)
+- [Security Guide](./SECURITY.md)
+- [Performance Tuning](./PERFORMANCE.md)
+
+### Getting Help
+
+- **Issues**: Create GitHub issues for bugs and feature requests
+- **Discussions**: Use GitHub discussions for questions
+- **Documentation**: Check the docs/ directory for detailed guides
+- **Monitoring**: Use Grafana dashboards for operational insights
+
+### Contributing
+
+- Follow the deployment testing procedures
+- Update documentation for any configuration changes
+- Test in staging environment before production
+- Follow security best practices

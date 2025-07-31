@@ -1,0 +1,157 @@
+# Wazuh AI Companion - Deployment Configuration
+# This file defines deployment settings for different environments
+
+environments:
+  development:
+    compose_file: "docker-compose.yml"
+    profiles: ["monitoring"]
+    health_check_timeout: 120
+    required_services: ["app", "postgres", "redis"]
+    optional_services: ["ollama", "prometheus", "grafana", "alertmanager"]
+    resource_limits:
+      app:
+        cpu: "1.0"
+        memory: "1G"
+      postgres:
+        cpu: "0.5"
+        memory: "512M"
+      redis:
+        cpu: "0.25"
+        memory: "256M"
+    
+  staging:
+    compose_file: "docker-compose.prod.yml"
+    profiles: ["monitoring"]
+    health_check_timeout: 180
+    required_services: ["app", "postgres", "redis", "nginx"]
+    optional_services: ["ollama", "prometheus", "grafana", "alertmanager"]
+    resource_limits:
+      app:
+        cpu: "1.5"
+        memory: "2G"
+      postgres:
+        cpu: "1.0"
+        memory: "1G"
+      redis:
+        cpu: "0.5"
+        memory: "512M"
+      nginx:
+        cpu: "0.25"
+        memory: "128M"
+    
+  production:
+    compose_file: "docker-compose.prod.yml"
+    profiles: []
+    health_check_timeout: 300
+    required_services: ["app", "postgres", "redis", "nginx"]
+    optional_services: ["ollama"]
+    resource_limits:
+      app:
+        cpu: "2.0"
+        memory: "4G"
+      postgres:
+        cpu: "2.0"
+        memory: "4G"
+      redis:
+        cpu: "1.0"
+        memory: "1G"
+      nginx:
+        cpu: "0.5"
+        memory: "256M"
+      ollama:
+        cpu: "4.0"
+        memory: "8G"
+
+# Health check endpoints for different services
+health_checks:
+  app: "http://localhost:8000/health"
+  app_detailed: "http://localhost:8000/health/detailed"
+  metrics: "http://localhost:8000/metrics"
+  prometheus: "http://localhost:9090/-/ready"
+  grafana: "http://localhost:3000/api/health"
+  alertmanager: "http://localhost:9093/-/ready"
+  node_exporter: "http://localhost:9100/metrics"
+  postgres_exporter: "http://localhost:9187/metrics"
+  redis_exporter: "http://localhost:9121/metrics"
+  cadvisor: "http://localhost:8080/metrics"
+
+# Kubernetes configuration
+kubernetes:
+  namespace: "wazuh-ai-companion"
+  ingress:
+    enabled: true
+    host: "wazuh-ai.example.com"
+    tls_enabled: true
+  storage:
+    postgres_size: "10Gi"
+    redis_size: "5Gi"
+    ollama_size: "50Gi"
+    prometheus_size: "20Gi"
+    grafana_size: "5Gi"
+  replicas:
+    app: 3
+    postgres: 1
+    redis: 1
+    ollama: 1
+
+# Monitoring configuration
+monitoring:
+  prometheus:
+    retention: "15d"
+    scrape_interval: "15s"
+    evaluation_interval: "15s"
+  grafana:
+    admin_user: "admin"
+    allow_signup: false
+  alertmanager:
+    retention: "120h"
+    group_wait: "10s"
+    group_interval: "10s"
+    repeat_interval: "1h"
+
+# Security configuration
+security:
+  enable_https: true
+  ssl_cert_path: "./nginx/ssl/cert.pem"
+  ssl_key_path: "./nginx/ssl/key.pem"
+  cors_origins:
+    - "http://localhost:3000"
+    - "https://wazuh-ai.example.com"
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+
+# Backup configuration
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention_days: 30
+  s3_bucket: "wazuh-ai-backups"
+  databases:
+    - postgres
+  volumes:
+    - ollama_data
+    - prometheus_data
+    - grafana_data
+
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "json"
+  centralized: true
+  retention_days: 30
+  max_file_size: "100MB"
+
+# Performance tuning
+performance:
+  postgres:
+    max_connections: 100
+    shared_buffers: "256MB"
+    effective_cache_size: "1GB"
+  redis:
+    maxmemory: "512MB"
+    maxmemory_policy: "allkeys-lru"
+  app:
+    workers: 4
+    worker_connections: 1000
+    keepalive_timeout: 65

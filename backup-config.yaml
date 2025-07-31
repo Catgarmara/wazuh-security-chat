@@ -1,0 +1,187 @@
+# Wazuh AI Companion - Backup Configuration
+# This file defines backup settings and schedules
+
+# General backup settings
+backup_directory: "/backups"
+retention_days: 30
+compression: true
+encryption: false
+log_level: "INFO"
+
+# Database backup configuration
+databases:
+  postgres:
+    enabled: true
+    container_name: "postgres"
+    database_name: "wazuh_chat"
+    username: "postgres"
+    backup_format: "sql"  # sql, custom, tar
+    compression: true
+    
+# Docker volume backup configuration
+volumes:
+  redis_data:
+    enabled: true
+    description: "Redis cache data"
+  
+  ollama_data:
+    enabled: true
+    description: "Ollama model data"
+  
+  prometheus_data:
+    enabled: true
+    description: "Prometheus metrics data"
+  
+  grafana_data:
+    enabled: true
+    description: "Grafana dashboards and configuration"
+  
+  alertmanager_data:
+    enabled: true
+    description: "Alertmanager data"
+
+# Vector store backup configuration
+vector_store:
+  enabled: true
+  path: "./data/vectorstore"
+  description: "AI vector embeddings and search index"
+
+# Configuration files backup
+configuration:
+  enabled: true
+  files:
+    - "docker-compose.yml"
+    - "docker-compose.prod.yml"
+    - "deployment-config.yaml"
+    - "backup-config.yaml"
+    - ".env.example"
+    - "nginx/nginx.conf"
+    - "nginx/nginx.prod.conf"
+    - "monitoring/prometheus.yml"
+    - "monitoring/prometheus.prod.yml"
+    - "monitoring/alertmanager.yml"
+    - "redis/redis.conf"
+    - "kubernetes/"
+
+# S3 backup configuration (optional)
+s3:
+  enabled: false
+  bucket: "wazuh-ai-companion-backups"
+  region: "us-east-1"
+  access_key: ""  # Set via environment variable AWS_ACCESS_KEY_ID
+  secret_key: ""  # Set via environment variable AWS_SECRET_ACCESS_KEY
+  prefix: "wazuh-ai-companion"
+  storage_class: "STANDARD_IA"  # STANDARD, STANDARD_IA, GLACIER, DEEP_ARCHIVE
+
+# Backup schedule configuration
+schedule:
+  # Cron format: minute hour day month day_of_week
+  full_backup: "0 2 * * *"      # Daily at 2 AM
+  incremental: "0 */6 * * *"    # Every 6 hours
+  database_only: "0 */2 * * *"  # Every 2 hours
+  
+# Notification configuration
+notifications:
+  enabled: true
+  on_success: false
+  on_failure: true
+  
+  email:
+    enabled: false
+    smtp_server: "smtp.example.com"
+    smtp_port: 587
+    username: ""
+    password: ""
+    from_address: "backups@example.com"
+    to_addresses:
+      - "admin@example.com"
+  
+  slack:
+    enabled: false
+    webhook_url: ""
+    channel: "#alerts"
+  
+  webhook:
+    enabled: false
+    url: ""
+    method: "POST"
+    headers:
+      Content-Type: "application/json"
+
+# Backup validation settings
+validation:
+  enabled: true
+  checksum_verification: true
+  test_restore: false  # Perform test restore to verify backup integrity
+  
+# Encryption settings (if enabled)
+encryption:
+  method: "gpg"  # gpg, openssl
+  key_file: "/etc/backup-encryption.key"
+  recipient: "backup@example.com"
+
+# Monitoring and metrics
+monitoring:
+  enabled: true
+  metrics_endpoint: "http://localhost:8000/metrics"
+  prometheus_pushgateway: ""
+  
+# Recovery settings
+recovery:
+  pre_recovery_backup: true  # Create backup before recovery
+  verify_before_restore: true
+  stop_services_timeout: 300
+  start_services_timeout: 600
+  
+# Performance settings
+performance:
+  parallel_backups: false
+  compression_level: 6  # 1-9 for gzip
+  max_backup_size: "10GB"
+  bandwidth_limit: ""  # e.g., "100M" for 100 MB/s
+
+# Backup types configuration
+backup_types:
+  full:
+    description: "Complete backup of all components"
+    components:
+      - "postgres"
+      - "redis"
+      - "vectorstore"
+      - "volumes"
+      - "configuration"
+    
+  incremental:
+    description: "Incremental backup of changed data"
+    components:
+      - "postgres"
+      - "redis"
+    
+  database_only:
+    description: "Database backup only"
+    components:
+      - "postgres"
+    
+  configuration_only:
+    description: "Configuration files backup only"
+    components:
+      - "configuration"
+
+# Disaster recovery settings
+disaster_recovery:
+  rpo_target: "1h"  # Recovery Point Objective
+  rto_target: "4h"  # Recovery Time Objective
+  
+  backup_locations:
+    primary: "/backups"
+    secondary: "/backups/offsite"
+    cloud: "s3://wazuh-ai-companion-backups"
+  
+  testing:
+    frequency: "monthly"
+    automated: true
+    notification_required: true
+  
+  documentation:
+    runbook_path: "./docs/DISASTER_RECOVERY.md"
+    contact_list: "./docs/EMERGENCY_CONTACTS.md"

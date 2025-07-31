@@ -1,0 +1,304 @@
+groups:
+  - name: wazuh-health-alerts
+    rules:
+      # Application Health Alerts
+      - alert: ApplicationDown
+        expr: up{job="wazuh-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: application
+          category: availability
+        annotations:
+          summary: "Wazuh AI Companion application is down"
+          description: "The main application has been down for more than 1 minute"
+          runbook_url: "https://docs.wazuh-ai.com/runbooks/application-down"
+
+      - alert: ApplicationHealthCheckFailing
+        expr: wazuh_health_check_status{service="system_resources"} < 0.5
+        for: 2m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+          category: health
+        annotations:
+          summary: "Health check failing for {{ $labels.service }}"
+          description: "Health check for {{ $labels.service }} has been failing for more than 2 minutes"
+
+      # Database Health Alerts
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: database
+          category: availability
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "Database connection has been lost for more than 30 seconds"
+          runbook_url: "https://docs.wazuh-ai.com/runbooks/database-down"
+
+      - alert: DatabaseHighConnectionUsage
+        expr: (wazuh_database_connections_active / 100) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+          category: performance
+        annotations:
+          summary: "High database connection usage"
+          description: "Database connection usage is {{ $value }}% (threshold: 80%)"
+
+      - alert: DatabaseSlowQueries
+        expr: histogram_quantile(0.95, rate(wazuh_database_query_duration_seconds_bucket[5m])) > 2
+        for: 3m
+        labels:
+          severity: warning
+          service: database
+          category: performance
+        annotations:
+          summary: "Database queries are slow"
+          description: "95th percentile query time is {{ $value }}s (threshold: 2s)"
+
+      # Redis Health Alerts
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: redis
+          category: availability
+        annotations:
+          summary: "Redis is down"
+          description: "Redis connection has been lost for more than 30 seconds"
+          runbook_url: "https://docs.wazuh-ai.com/runbooks/redis-down"
+
+      - alert: RedisHighMemoryUsage
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+          category: performance
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis memory usage is {{ $value }}% (threshold: 90%)"
+
+      # AI Service Health Alerts
+      - alert: AIServiceDegraded
+        expr: wazuh_health_check_status{service="ai_service"} < 1
+        for: 2m
+        labels:
+          severity: warning
+          service: ai_service
+          category: functionality
+        annotations:
+          summary: "AI service is degraded"
+          description: "AI service health check indicates degraded performance"
+
+      - alert: AIQueryLatencyHigh
+        expr: histogram_quantile(0.95, rate(wazuh_ai_query_duration_seconds_bucket[5m])) > 10
+        for: 3m
+        labels:
+          severity: warning
+          service: ai_service
+          category: performance
+        annotations:
+          summary: "AI query latency is high"
+          description: "95th percentile AI query time is {{ $value }}s (threshold: 10s)"
+
+      - alert: AIQueryFailureRate
+        expr: (rate(wazuh_ai_queries_total{status="error"}[5m]) / rate(wazuh_ai_queries_total[5m])) * 100 > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: ai_service
+          category: reliability
+        annotations:
+          summary: "High AI query failure rate"
+          description: "AI query failure rate is {{ $value }}% (threshold: 10%)"
+
+      # System Resource Alerts
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+          category: resources
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% (threshold: 90%)"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          service: system
+          category: resources
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}% (threshold: 90%)"
+
+      - alert: HighDiskUsage
+        expr: 100 - ((node_filesystem_avail_bytes{mountpoint="/"} * 100) / node_filesystem_size_bytes{mountpoint="/"}) > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+          category: resources
+        annotations:
+          summary: "High disk usage detected"
+          description: "Disk usage is {{ $value }}% (threshold: 85%)"
+
+      - alert: DiskSpaceCritical
+        expr: 100 - ((node_filesystem_avail_bytes{mountpoint="/"} * 100) / node_filesystem_size_bytes{mountpoint="/"}) > 95
+        for: 1m
+        labels:
+          severity: critical
+          service: system
+          category: resources
+        annotations:
+          summary: "Critical disk space shortage"
+          description: "Disk usage is {{ $value }}% (threshold: 95%)"
+
+      # HTTP Error Rate Alerts
+      - alert: HighHTTPErrorRate
+        expr: (rate(wazuh_http_requests_total{status_code=~"5.."}[5m]) / rate(wazuh_http_requests_total[5m])) * 100 > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: application
+          category: reliability
+        annotations:
+          summary: "High HTTP error rate"
+          description: "HTTP 5xx error rate is {{ $value }}% (threshold: 5%)"
+
+      - alert: CriticalHTTPErrorRate
+        expr: (rate(wazuh_http_requests_total{status_code=~"5.."}[5m]) / rate(wazuh_http_requests_total[5m])) * 100 > 15
+        for: 1m
+        labels:
+          severity: critical
+          service: application
+          category: reliability
+        annotations:
+          summary: "Critical HTTP error rate"
+          description: "HTTP 5xx error rate is {{ $value }}% (threshold: 15%)"
+
+      # WebSocket Connection Alerts
+      - alert: WebSocketConnectionDrop
+        expr: rate(wazuh_websocket_connections_total{status="disconnected"}[5m]) > rate(wazuh_websocket_connections_total{status="connected"}[5m]) * 2
+        for: 3m
+        labels:
+          severity: warning
+          service: websocket
+          category: connectivity
+        annotations:
+          summary: "High WebSocket disconnection rate"
+          description: "WebSocket disconnection rate is significantly higher than connection rate"
+
+      # Authentication Alerts
+      - alert: HighAuthenticationFailureRate
+        expr: (rate(wazuh_auth_attempts_total{status="failed"}[5m]) / rate(wazuh_auth_attempts_total[5m])) * 100 > 20
+        for: 3m
+        labels:
+          severity: warning
+          service: authentication
+          category: security
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is {{ $value }}% (threshold: 20%)"
+
+      - alert: SuspiciousAuthenticationActivity
+        expr: rate(wazuh_auth_attempts_total{status="failed"}[1m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          service: authentication
+          category: security
+        annotations:
+          summary: "Suspicious authentication activity detected"
+          description: "More than 10 failed authentication attempts per minute"
+
+      # SLA Compliance Alerts
+      - alert: SLAAvailabilityBreach
+        expr: (sum(rate(wazuh_http_requests_total{status_code!~"5.."}[1h])) / sum(rate(wazuh_http_requests_total[1h]))) * 100 < 99
+        for: 5m
+        labels:
+          severity: critical
+          service: application
+          category: sla
+        annotations:
+          summary: "SLA availability breach"
+          description: "Service availability is {{ $value }}% (SLA: 99%)"
+
+      - alert: SLAResponseTimeBreach
+        expr: histogram_quantile(0.95, rate(wazuh_http_request_duration_seconds_bucket[1h])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: application
+          category: sla
+        annotations:
+          summary: "SLA response time breach"
+          description: "95th percentile response time is {{ $value }}s (SLA: 2s)"
+
+  - name: wazuh-business-alerts
+    rules:
+      # Business Logic Alerts
+      - alert: SecurityAlertSpike
+        expr: rate(wazuh_security_alerts_generated_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          service: ai_service
+          category: business
+        annotations:
+          summary: "Spike in security alerts detected"
+          description: "Security alert generation rate is {{ $value }} per minute (threshold: 5)"
+
+      - alert: LowLogAnalysisAccuracy
+        expr: avg_over_time(wazuh_log_analysis_accuracy[10m]) < 0.7
+        for: 5m
+        labels:
+          severity: warning
+          service: ai_service
+          category: quality
+        annotations:
+          summary: "Low log analysis accuracy"
+          description: "Average log analysis accuracy is {{ $value }} (threshold: 0.7)"
+
+      - alert: ThreatDetectionLatencyHigh
+        expr: histogram_quantile(0.95, rate(wazuh_threat_detection_latency_seconds_bucket[5m])) > 30
+        for: 3m
+        labels:
+          severity: warning
+          service: ai_service
+          category: performance
+        annotations:
+          summary: "High threat detection latency"
+          description: "95th percentile threat detection time is {{ $value }}s (threshold: 30s)"
+
+      # User Experience Alerts
+      - alert: LowUserSatisfaction
+        expr: avg_over_time(wazuh_user_satisfaction_score[1h]) < 3
+        for: 10m
+        labels:
+          severity: warning
+          service: application
+          category: user_experience
+        annotations:
+          summary: "Low user satisfaction detected"
+          description: "Average user satisfaction score is {{ $value }} (threshold: 3.0)"
+
+      - alert: HighQueryComplexity
+        expr: avg_over_time(wazuh_query_complexity_score[10m]) > 8
+        for: 5m
+        labels:
+          severity: info
+          service: ai_service
+          category: usage_pattern
+        annotations:
+          summary: "High query complexity detected"
+          description: "Average query complexity is {{ $value }} (threshold: 8.0)"

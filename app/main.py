@@ -1,6 +1,7 @@
 """
 Main application entry point.
 """
+from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -93,15 +94,33 @@ def create_app() -> FastAPI:
             detail=exc.to_dict()
         )
     
-    # Health check endpoint
+    # Health check endpoints
     @app.get("/health")
     async def health_check():
+        """Basic health check endpoint."""
         return {
             "status": "healthy",
             "app_name": settings.app_name,
             "version": settings.version,
-            "environment": settings.environment
+            "environment": settings.environment,
+            "timestamp": datetime.utcnow().isoformat()
         }
+    
+    @app.get("/health/detailed")
+    async def detailed_health_check():
+        """Detailed health check with all service statuses."""
+        from core.health import get_application_health
+        return await get_application_health(use_cache=False)
+    
+    @app.get("/health/{service_name}")
+    async def service_health_check(service_name: str):
+        """Health check for a specific service."""
+        from core.health import get_service_health
+        result = await get_service_health(service_name)
+        if result is None:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail=f"Service '{service_name}' not found")
+        return result
     
     # Metrics endpoint
     @app.get("/metrics")

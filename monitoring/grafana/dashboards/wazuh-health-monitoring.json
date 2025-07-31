@@ -1,0 +1,308 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Wazuh AI Companion - Health Monitoring",
+    "tags": ["wazuh", "health", "monitoring", "sla"],
+    "style": "dark",
+    "timezone": "browser",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Overall System Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "min(wazuh_health_check_status)",
+            "legendFormat": "System Health"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 0.5},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"options": {"0": {"text": "UNHEALTHY"}}, "type": "value"},
+              {"options": {"0.5": {"text": "DEGRADED"}}, "type": "value"},
+              {"options": {"1": {"text": "HEALTHY"}}, "type": "value"}
+            ],
+            "unit": "none"
+          }
+        },
+        "gridPos": {"h": 6, "w": 4, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Service Health Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "wazuh_health_check_status",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 0.5},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"options": {"0": {"text": "UNHEALTHY"}}, "type": "value"},
+              {"options": {"0.5": {"text": "DEGRADED"}}, "type": "value"},
+              {"options": {"1": {"text": "HEALTHY"}}, "type": "value"}
+            ]
+          }
+        },
+        "gridPos": {"h": 6, "w": 8, "x": 4, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Health Check Response Times",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "wazuh_health_check_duration_seconds",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Database Health",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "wazuh_database_connections_active",
+            "legendFormat": "Active Connections"
+          },
+          {
+            "expr": "rate(wazuh_database_queries_total[5m])",
+            "legendFormat": "Query Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 6}
+      },
+      {
+        "id": 5,
+        "title": "Redis Health",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(wazuh_redis_operations_total[5m])",
+            "legendFormat": "{{operation}} - {{status}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 6}
+      },
+      {
+        "id": 6,
+        "title": "AI Service Performance",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(wazuh_ai_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th Percentile Query Time"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(wazuh_ai_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "Median Query Time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 12}
+      },
+      {
+        "id": 7,
+        "title": "System Resource Usage",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "legendFormat": "CPU Usage %"
+          },
+          {
+            "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+            "legendFormat": "Memory Usage %"
+          },
+          {
+            "expr": "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\"} * 100) / node_filesystem_size_bytes{mountpoint=\"/\"})",
+            "legendFormat": "Disk Usage %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "percent",
+            "max": 100,
+            "min": 0
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 12}
+      },
+      {
+        "id": 8,
+        "title": "Error Rates",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(wazuh_http_requests_total{status_code=~\"5..\"}[5m])",
+            "legendFormat": "HTTP 5xx Errors"
+          },
+          {
+            "expr": "rate(wazuh_system_errors_total[5m])",
+            "legendFormat": "{{error_type}} - {{service}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 18}
+      },
+      {
+        "id": 9,
+        "title": "WebSocket Connection Health",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "wazuh_websocket_connections_active",
+            "legendFormat": "Active Connections"
+          },
+          {
+            "expr": "rate(wazuh_websocket_connections_total{status=\"connected\"}[5m])",
+            "legendFormat": "Connection Rate"
+          },
+          {
+            "expr": "rate(wazuh_websocket_connections_total{status=\"disconnected\"}[5m])",
+            "legendFormat": "Disconnection Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 18}
+      },
+      {
+        "id": 10,
+        "title": "Service Uptime",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"wazuh-app\"}",
+            "legendFormat": "Application"
+          },
+          {
+            "expr": "up{job=\"postgres\"}",
+            "legendFormat": "Database"
+          },
+          {
+            "expr": "up{job=\"redis\"}",
+            "legendFormat": "Redis"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"options": {"0": {"text": "DOWN"}}, "type": "value"},
+              {"options": {"1": {"text": "UP"}}, "type": "value"}
+            ]
+          }
+        },
+        "gridPos": {"h": 4, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 11,
+        "title": "SLA Compliance",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(sum(rate(wazuh_http_requests_total{status_code!~\"5..\"}[24h])) / sum(rate(wazuh_http_requests_total[24h]))) * 100",
+            "legendFormat": "Availability %"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(wazuh_http_request_duration_seconds_bucket[24h]))",
+            "legendFormat": "95th Percentile Response Time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 95},
+                {"color": "green", "value": 99}
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 4, "w": 12, "x": 12, "y": 24}
+      }
+    ],
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "schemaVersion": 30,
+    "version": 1,
+    "links": []
+  }
+}
