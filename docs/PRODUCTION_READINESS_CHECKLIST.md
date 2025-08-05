@@ -257,7 +257,7 @@ curl -X POST https://yourdomain.com/api/v1/auth/login \
 - [ ] **Communication Sent**: Go-live communication sent to stakeholders
 
 ---
-
+<--!
 ## Checklist Completion
 
 **Date**: _______________  
@@ -275,4 +275,4 @@ _____________________________________________________________________
 - [ ] ✅ READY FOR PRODUCTION DEPLOYMENT
 - [ ] ❌ NOT READY - Issues to resolve: ________________________
 
-This checklist must be 100% complete before production deployment.
+This checklist must be 100% complete before production deployment.-->
