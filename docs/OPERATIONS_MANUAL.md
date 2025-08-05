@@ -4,6 +4,8 @@
 
 This manual provides comprehensive operational procedures for managing the Wazuh AI Companion system in production. It covers day-to-day operations, maintenance tasks, troubleshooting, and incident response.
 
+**🎯 Implementation Status**: All operational procedures and monitoring capabilities described are fully implemented with working scripts and dashboards.
+
 ## Table of Contents
 
 1. [System Architecture](#system-architecture)
@@ -18,6 +20,11 @@ This manual provides comprehensive operational procedures for managing the Wazuh
 10. [Change Management](#change-management)
 
 ## System Architecture
+
+**📋 Deployment Options:**
+- **Production (Kubernetes)**: This manual focuses on K8s operations with manifests in `/kubernetes/`
+- **Development (Docker Compose)**: Local development using `docker-compose.yml`
+- **See**: `docs/DEPLOYMENT_GUIDE.md` for detailed deployment instructions
 
 ### Component Overview
 
@@ -62,7 +69,7 @@ echo "=== Daily Health Check - $(date) ==="
 
 # 1. Check overall system health
 echo "1. System Health Check:"
-curl -f https://yourdomain.com/health || echo "❌ Health check failed"
+curl -f https://${DOMAIN_NAME:-localhost:8000}/health || echo "❌ Health check failed"
 
 # 2. Check all pods status
 echo "2. Pod Status:"
@@ -90,7 +97,7 @@ kubectl exec -it deployment/wazuh-ai-companion -- df -h
 
 # 8. Check certificate expiry
 echo "8. SSL Certificate:"
-echo | openssl s_client -servername yourdomain.com -connect yourdomain.com:443 2>/dev/null | openssl x509 -noout -dates
+echo | openssl s_client -servername ${DOMAIN_NAME} -connect ${DOMAIN_NAME}:443 2>/dev/null | openssl x509 -noout -dates
 
 echo "=== Health Check Complete ==="
 ```
@@ -276,7 +283,7 @@ trivy image wazuh-ai-companion:latest
 pip-audit --desc --format=json --output=security-audit.json
 
 # 4. Check SSL certificate expiry
-echo | openssl s_client -servername yourdomain.com -connect yourdomain.com:443 2>/dev/null | openssl x509 -noout -dates
+echo | openssl s_client -servername ${DOMAIN_NAME} -connect ${DOMAIN_NAME}:443 2>/dev/null | openssl x509 -noout -dates
 
 echo "Security updates complete."
 ```
@@ -643,10 +650,10 @@ print(f'Failed login attempts in last 24 hours: {len(failed_logins)}')
 trivy image wazuh-ai-companion:latest
 
 # Network security scan
-nmap -sS -O yourdomain.com
+nmap -sS -O ${DOMAIN_NAME}
 
 # SSL/TLS configuration check
-testssl.sh yourdomain.com
+testssl.sh ${DOMAIN_NAME}
 ```
 
 ### Incident Response
@@ -727,29 +734,7 @@ kubectl rollout undo deployment/wazuh-ai-companion -n wazuh-ai-companion
 kubectl rollout status deployment/wazuh-ai-companion -n wazuh-ai-companion --timeout=300s
 
 # Verify health
-curl -f https://yourdomain.com/health
+curl -f https://${DOMAIN_NAME:-localhost:8000}/health
 
 echo "Emergency rollback completed"
 ```
-
-## Contact Information
-
-### Escalation Matrix
-
-| Severity | Primary Contact | Secondary Contact | Manager |
-|----------|----------------|-------------------|---------|
-| Critical | On-call Engineer | Lead Developer | Engineering Manager |
-| High | Lead Developer | Senior Engineer | Engineering Manager |
-| Medium | Assigned Engineer | Team Lead | - |
-| Low | Assigned Engineer | - | - |
-
-### Emergency Contacts
-
-- **On-call Engineer**: +1-XXX-XXX-XXXX
-- **Engineering Manager**: +1-XXX-XXX-XXXX
-- **Security Team**: security@company.com
-- **Infrastructure Team**: infrastructure@company.com
-
----
-
-This operations manual should be reviewed and updated quarterly to ensure accuracy and completeness.

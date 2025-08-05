@@ -152,16 +152,33 @@ def redis_operation():
 
 ## Configuration
 
+### Redis Environment Variables
+
 Redis configuration is managed through the application settings:
 
-```python
-# Environment variables
+```bash
+# Redis Connection Settings
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_DB=0
 REDIS_PASSWORD=your_password
 REDIS_MAX_CONNECTIONS=20
 ```
+
+**Configuration Details:**
+- `REDIS_HOST`: Redis server hostname (default: localhost)
+- `REDIS_PORT`: Redis server port (default: 6379)
+- `REDIS_DB`: Redis database number (default: 0, range: 0-15)
+- `REDIS_PASSWORD`: Redis authentication password (optional)
+- `REDIS_MAX_CONNECTIONS`: Maximum connections in pool (default: 20)
+
+### Integration with Core Config
+
+All Redis settings are defined in `core/config.py` using Pydantic validation:
+- Port validation (1-65535)
+- Database number validation (0-15)
+- Connection URL generation
+- Environment variable binding
 
 ## Initialization and Shutdown
 

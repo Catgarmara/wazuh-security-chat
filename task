@@ -1,0 +1,37 @@
+● Update Todos
+  ⎿  ☒ Set up Next.js 14 frontend application structure
+     ☒ Configure TypeScript, Tailwind CSS, and Shadcn/ui
+     ☒ Create core layout components (sidebar, main area)
+     ☒ Implement authentication integration with JWT
+     ☒ Create authentication service layer
+     ☒ Implement JWT token management
+     ☒ Create protected route wrapper
+     ☒ Integrate auth with WebSocket connection
+     ☒ Add auth middleware and guards
+     ☒ Create WebSocket connection for real-time chat
+     ☒ Build model management interface components
+     ☒ Create model loading/unloading UI controls
+     ☒ Implement model performance metrics display
+     ☒ Add model hot-swap functionality
+     ☒ Create model configuration management
+     ☒ Implement SIEM status dashboard components
+     ☒ Create Wazuh manager status widget
+     ☒ Build agent connectivity monitoring
+     ☒ Implement security alerts dashboard
+     ☒ Create threat intelligence feed
+     ☒ Add log analysis visualization
+     ☒ Create integrated SIEM monitoring dashboard view
+     ☒ Add real-time alert notification system
+     ☒ Implement alert management workflows
+     ☒ Create threat correlation engine UI
+     ☒ Create SIEM data service layer
+     ☒ Implement Wazuh API integration
+     ☒ Add real-time event streaming endpoints
+     ☒ Create security alerts and threat monitoring UI
+     ☐ Create alert management API endpoints
+     ☐ Enhance backend APIs for SIEM integration
+     ☐ Implement threat correlation API services
+     ☐ Add Docker configuration for frontend
+
+
+     

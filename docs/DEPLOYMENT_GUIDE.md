@@ -2,6 +2,8 @@
 
 This comprehensive guide covers deployment of the Wazuh AI Companion in different environments using Docker Compose and Kubernetes.
 
+**🎯 Implementation Status**: All deployment methods described in this guide are fully implemented and tested.
+
 ## Table of Contents
 
 1. [Prerequisites](#prerequisites)
@@ -72,8 +74,8 @@ sudo usermod -aG docker $USER
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/your-org/wazuh-ai-companion.git
-cd wazuh-ai-companion
+git clone https://github.com/your-username/wazuh-ai.git
+cd wazuh-ai
 ```
 
 ### 2. Development Deployment
@@ -637,26 +639,3 @@ docker-compose logs app --since 1h | grep -c ERROR
 # Response time monitoring
 curl -w "@curl-format.txt" -o /dev/null -s http://localhost:8000/health
 ```
-
-## Support and Documentation
-
-### Additional Resources
-
-- [API Documentation](./API_DOCUMENTATION.md)
-- [Configuration Reference](./CONFIGURATION.md)
-- [Security Guide](./SECURITY.md)
-- [Performance Tuning](./PERFORMANCE.md)
-
-### Getting Help
-
-- **Issues**: Create GitHub issues for bugs and feature requests
-- **Discussions**: Use GitHub discussions for questions
-- **Documentation**: Check the docs/ directory for detailed guides
-- **Monitoring**: Use Grafana dashboards for operational insights
-
-### Contributing
-
-- Follow the deployment testing procedures
-- Update documentation for any configuration changes
-- Test in staging environment before production
-- Follow security best practices

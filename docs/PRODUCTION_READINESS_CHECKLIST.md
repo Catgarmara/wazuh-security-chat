@@ -146,45 +146,45 @@ This checklist ensures that the Wazuh AI Companion system is ready for productio
 
 ```bash
 # Application health
-curl -f https://yourdomain.com/health
+curl -f https://${DOMAIN_NAME:-localhost:8000}/health
 
 # Database connectivity
-curl -f https://yourdomain.com/api/v1/health/database
+curl -f https://${DOMAIN_NAME:-localhost:8000}/api/v1/health/database
 
 # Redis connectivity  
-curl -f https://yourdomain.com/api/v1/health/redis
+curl -f https://${DOMAIN_NAME:-localhost:8000}/api/v1/health/redis
 
 # AI service health
-curl -f https://yourdomain.com/api/v1/health/ai
+curl -f https://${DOMAIN_NAME:-localhost:8000}/api/v1/health/ai
 
 # Metrics endpoint
-curl -f https://yourdomain.com/metrics
+curl -f https://${DOMAIN_NAME:-localhost:8000}/metrics
 ```
 
 ### ✅ Functional Validation
 
 ```bash
 # Authentication test
-curl -X POST https://yourdomain.com/api/v1/auth/login \
+curl -X POST https://${DOMAIN_NAME:-localhost:8000}/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "test_user", "password": "test_password"}'
 
 # WebSocket connection test
-wscat -c wss://yourdomain.com/ws/chat?token=JWT_TOKEN
+wscat -c wss://${DOMAIN_NAME:-localhost:8000}/ws/chat?token=JWT_TOKEN
 
 # API endpoint test
 curl -H "Authorization: Bearer JWT_TOKEN" \
-  https://yourdomain.com/api/v1/analytics/dashboard
+  https://${DOMAIN_NAME:-localhost:8000}/api/v1/analytics/dashboard
 ```
 
 ### ✅ Performance Validation
 
 ```bash
 # Response time test
-curl -w "@curl-format.txt" -o /dev/null -s https://yourdomain.com/health
+curl -w "@curl-format.txt" -o /dev/null -s https://${DOMAIN_NAME:-localhost:8000}/health
 
 # Load test (using Apache Bench)
-ab -n 1000 -c 10 https://yourdomain.com/health
+ab -n 1000 -c 10 https://${DOMAIN_NAME:-localhost:8000}/health
 
 # Memory and CPU usage check
 kubectl top pods -n wazuh-ai-companion
@@ -206,16 +206,16 @@ kubectl top pods -n wazuh-ai-companion
 
 ```bash
 # SSL/TLS configuration test
-nmap --script ssl-enum-ciphers -p 443 yourdomain.com
+nmap --script ssl-enum-ciphers -p 443 ${DOMAIN_NAME}
 
 # Security headers test
-curl -I https://yourdomain.com
+curl -I https://${DOMAIN_NAME:-localhost:8000}
 
 # Authentication bypass test
-curl -X GET https://yourdomain.com/api/v1/admin/users
+curl -X GET https://${DOMAIN_NAME:-localhost:8000}/api/v1/admin/users
 
 # SQL injection test (should be blocked)
-curl -X POST https://yourdomain.com/api/v1/auth/login \
+curl -X POST https://${DOMAIN_NAME:-localhost:8000}/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "admin'\''OR 1=1--", "password": "test"}'
 ```
@@ -239,40 +239,4 @@ curl -X POST https://yourdomain.com/api/v1/auth/login \
 - [ ] **Incident Response**: Incident response procedures updated
 - [ ] **Support Procedures**: Support procedures documented and communicated
 
-## Sign-off
 
-### ✅ Team Sign-offs
-
-- [ ] **Development Team**: Development team approves deployment
-- [ ] **QA Team**: QA team approves test results
-- [ ] **Security Team**: Security team approves security assessment
-- [ ] **Operations Team**: Operations team approves infrastructure readiness
-- [ ] **Product Owner**: Product owner approves feature completeness
-- [ ] **Technical Lead**: Technical lead approves overall readiness
-
-### ✅ Final Approval
-
-- [ ] **Deployment Manager**: Final deployment approval granted
-- [ ] **Go-Live Decision**: Official go-live decision made
-- [ ] **Communication Sent**: Go-live communication sent to stakeholders
-
----
-
-## Checklist Completion
-
-**Date**: _______________  
-**Deployment Manager**: _______________  
-**Signature**: _______________
-
-**Notes**:
-_____________________________________________________________________
-_____________________________________________________________________
-_____________________________________________________________________
-
----
-
-**Status**: 
-- [ ] ✅ READY FOR PRODUCTION DEPLOYMENT
-- [ ] ❌ NOT READY - Issues to resolve: ________________________
-
-This checklist must be 100% complete before production deployment.
