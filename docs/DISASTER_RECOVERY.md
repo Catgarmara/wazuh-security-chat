@@ -715,26 +715,3 @@ docker-compose restart app ollama
 docker-compose exec app python -c "import psutil; print(psutil.virtual_memory())"
 ```
 
-## Documentation Updates
-
-This disaster recovery guide should be updated:
-
-- **Quarterly**: Review and update procedures
-- **After Incidents**: Document lessons learned
-- **After Changes**: Update for system modifications
-- **After Tests**: Incorporate test results and improvements
-
-### Version History
-
-| Version | Date | Changes | Author |
-|---------|------|---------|--------|
-| 1.0 | 2024-01-31 | Initial version | System Admin |
-| 1.1 | 2024-02-15 | Added cloud recovery procedures | System Admin |
-| 1.2 | 2024-03-01 | Updated contact information | System Admin |
-
----
-
-**Last Updated**: January 31, 2024  
-**Next Review**: April 30, 2024  
-**Document Owner**: System Administrator  
-**Approval**: IT Manager
