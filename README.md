@@ -1,8 +1,8 @@
 # Production SOC Automation Platform
 
-**Real-time threat hunting system deployed in live security operations center.**
+**Full-stack AI-powered threat hunting system with modern web interface and real-time SIEM integration.**
 
-Built to solve the critical problem of SOC analyst burnout and alert fatigue through intelligent automation. Uses local LLM deployment to ensure sensitive security data never leaves the organization's infrastructure - essential for banking and financial services compliance.
+Complete enterprise solution combining intelligent backend automation with intuitive frontend interface. Built to solve the critical problem of SOC analyst burnout and alert fatigue through intelligent automation and modern user experience. Uses local LLM deployment to ensure sensitive security data never leaves the organization's infrastructure - essential for banking and financial services compliance.
 
 ## Business Problem Solved
 - SOC analysts spend 70% of time on repetitive alert triage
@@ -22,11 +22,13 @@ Currently processing real security events in enterprise environment:
 
 ## Technical Capabilities
 
-**Production Infrastructure:**
-- Enterprise SIEM integration (CrowdStrike Falcon XDR, Wazuh)
-- RAG-enhanced log analysis processing 500GB+ security archives
-- Local LLM deployment with GPU acceleration for real-time analysis
-- WebSocket-based real-time analyst interface
+**Full-Stack Production Infrastructure:**
+- **Frontend**: Next.js 14 with TypeScript, Tailwind CSS, and Radix UI components
+- **Real-time Communication**: WebSocket integration with automatic reconnection
+- **Backend**: FastAPI microservices with role-based access control
+- **Enterprise SIEM**: CrowdStrike Falcon XDR and Wazuh integration
+- **AI Processing**: RAG-enhanced log analysis processing 500GB+ security archives
+- **Local LLM**: GPU-accelerated deployment for real-time analysis
 
 **Detection Engineering:**
 - Custom detection rule development with 30%+ false positive reduction
@@ -36,36 +38,59 @@ Currently processing real security events in enterprise environment:
 - Integration with existing SOC workflows and SIEM platforms
 ---
 
-## System Architecture
+## Full-Stack System Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                    Production Environment                    │
-│  ┌─────────────────┐    ┌──────────────────────────────────┐ │
-│  │   FastAPI       │    │        Local LLM Engine          │ │
-│  │   WebSocket     │◄──►│      (Llama3 + Ollama)           │ │
-│  │   Interface     │    │     GPU Accelerated              │ │
-│  └─────────────────┘    └──────────────────────────────────┘ │
-│           │                            ▲                     │
-│           ▼                            │                     │
-│  ┌─────────────────┐    ┌──────────────────────────────────┐ │
-│  │  PostgreSQL     │    │       FAISS Vector Store         │ │
-│  │  + Redis Cache  │◄──►│    (HuggingFace Embeddings)      │ │
-│  └─────────────────┘    └──────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Enterprise SIEM Integration                    │
-│         CrowdStrike Falcon XDR • Wazuh • OpenSearch         │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Frontend Layer (Next.js 14)                 │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────────┐ │
+│  │  Modern Web UI   │  │  Real-time Chat  │  │   SIEM Dashboard    │ │
+│  │  (React 18 +     │  │   (WebSocket)    │  │   (Security Alerts) │ │
+│  │  TypeScript)     │  │                  │  │                     │ │
+│  └──────────────────┘  └──────────────────┘  └─────────────────────┘ │
+│           │                      │                        │          │
+│           └──────────────────────┼────────────────────────┘          │
+│                                  │                                   │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │ JWT Auth + REST API + WebSocket
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Backend Services (FastAPI)                      │
+│  ┌─────────────────┐  ┌──────────────────┐  ┌─────────────────────┐ │
+│  │   Authentication│  │    Chat Service  │  │    SIEM Services    │ │
+│  │   & RBAC        │  │    + WebSocket   │  │   (Log Analysis)    │ │
+│  │                 │  │                  │  │                     │ │
+│  └─────────────────┘  └──────────────────┘  └─────────────────────┘ │
+│           │                      │                        │          │
+│           └──────────────────────┼────────────────────────┘          │
+│                                  │                                   │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                       AI & Data Layer                              │
+│  ┌─────────────────┐  ┌──────────────────┐  ┌─────────────────────┐ │
+│  │   PostgreSQL    │  │   Local LLM      │  │   FAISS Vector      │ │
+│  │   + Redis       │  │   (Llama3 +      │  │   Store +           │ │
+│  │   Cache         │  │   Ollama)        │  │   HuggingFace       │ │
+│  └─────────────────┘  └──────────────────┘  └─────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│              Enterprise SIEM Integration                           │
+│         CrowdStrike Falcon XDR • Wazuh • OpenSearch               │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 **Data Flow:**
-1. **Enterprise SIEM** forwards security events and alerts
-2. **Vector Store** indexes log data for semantic similarity search  
-3. **Local LLM** processes analyst queries without external API calls
-4. **WebSocket Interface** delivers real-time threat hunting results
+1. **Modern Web Interface** provides intuitive SOC analyst experience
+2. **Real-time WebSocket** enables instant chat communication with AI
+3. **Enterprise SIEM** forwards security events and alerts to backend
+4. **Vector Store** indexes log data for semantic similarity search  
+5. **Local LLM** processes analyst queries without external API calls
+6. **Backend Services** coordinate authentication, data processing, and responses
+7. **Frontend Dashboard** displays threat hunting results and SIEM integration
 
 ---
 
@@ -128,11 +153,16 @@ ollama pull llama3
 # Install Python dependencies
 pip install -r requirements.txt
 
+# Install Node.js and frontend dependencies
+cd frontend
+npm install
+cd ..
+
 # Set up databases (PostgreSQL and Redis required)
 # See docs/deployment.md for detailed setup instructions
 ```
 
-### Launch the Production System
+### Full-Stack Development Setup
 ```bash
 # Clone and navigate to project
 git clone https://github.com/yourusername/wazuh-ai
@@ -141,10 +171,35 @@ cd wazuh-ai
 # Initialize database
 python scripts/init_db.py
 
-# Start the application
+# Option 1: Docker Development (Recommended)
+docker-compose up -d  # Start backend services
+cd frontend && npm run dev  # Start frontend dev server
+
+# Option 2: Manual Development
+# Terminal 1: Start backend
 python app/main.py
 
-# Access web interface at http://localhost:8000
+# Terminal 2: Start frontend
+cd frontend
+npm run dev
+
+# Access the application:
+# - Frontend: http://localhost:3000 (Next.js dev server)
+# - Backend API: http://localhost:8000 (FastAPI)
+# - WebSocket: ws://localhost:8000/ws
+```
+
+### Production Deployment
+```bash
+# Build and deploy full stack
+docker-compose -f docker-compose.prod.yml up -d
+
+# Or build frontend for production
+cd frontend
+npm run build
+npm start
+
+# Access web interface at configured domain/port
 # Create admin user via API or use default test credentials
 ```
 
@@ -204,17 +259,35 @@ python app/main.py
 
 ## Technical Stack
 
-### **Production Infrastructure**
+### **Frontend Technologies**
+- **Framework**: Next.js 14 with React 18 and TypeScript 5.3+
+- **UI Library**: Tailwind CSS 3.4+ with Radix UI components
+- **State Management**: Zustand with React Query for server state
+- **Real-time**: WebSocket client with automatic reconnection
+- **Authentication**: JWT token management with secure HTTP-only cookies
+- **Development**: ESLint, Prettier, and comprehensive TypeScript configuration
+- **Testing**: Jest with React Testing Library and Playwright E2E tests
+
+### **Backend Infrastructure**
+- **Framework**: FastAPI microservices with dependency injection
 - **Database**: PostgreSQL (primary data), Redis (sessions/cache)
-- **Backend**: FastAPI microservices with dependency injection
-- **Authentication**: JWT tokens with bcrypt password hashing
-- **API**: RESTful endpoints + WebSocket for real-time chat
-- **Testing**: Comprehensive unit/integration test suite
+- **Authentication**: JWT tokens with bcrypt password hashing and RBAC
+- **API**: RESTful endpoints + WebSocket for real-time communication
+- **Testing**: Comprehensive unit/integration/E2E test suite
+- **Monitoring**: Prometheus metrics with Grafana dashboards
 
 ### **AI/ML Components**
 - **LLM**: Llama3 8B via Ollama, local GPU acceleration
 - **Vector Database**: FAISS with HuggingFace embeddings
 - **RAG Pipeline**: Semantic search with conversation context
+- **Real-time Processing**: WebSocket-based AI response streaming
+
+### **DevOps & Deployment**
+- **Containerization**: Docker with multi-stage builds for frontend and backend
+- **Orchestration**: Docker Compose (development) and Kubernetes (production)
+- **Reverse Proxy**: Nginx with SSL termination and load balancing
+- **Monitoring**: Comprehensive observability with metrics, logging, and alerting
+- **Backup/Recovery**: Automated backup systems with disaster recovery procedures
 
 ### **Lab Environment**
 - **SIEM Platform**: Wazuh 4.12 (Ubuntu 20.04 LTS)
@@ -249,13 +322,26 @@ python app/main.py
 
 ### ✅ **Fully Implemented Features**
 
-**Core Application:**
-- ✅ FastAPI microservices architecture with dependency injection
+**Modern Frontend (Next.js 14):**
+- ✅ React 18 with TypeScript and modern hooks architecture
+- ✅ Tailwind CSS with Radix UI component library for professional design
+- ✅ Zustand state management with React Query for server state
+- ✅ Real-time WebSocket integration with automatic reconnection
+- ✅ JWT authentication with secure token management
+- ✅ Responsive design with mobile-first approach
+- ✅ Comprehensive SIEM dashboard with security alerts visualization
+- ✅ Interactive chat interface with AI conversation management
+- ✅ Model configuration and performance monitoring components
+- ✅ Role-based UI with protected routes and permissions
+
+**Backend Microservices:**
+- ✅ FastAPI microservices architecture with dependency injection  
 - ✅ JWT authentication with role-based access control (Admin/Analyst/Viewer)
 - ✅ PostgreSQL database with Alembic migrations
 - ✅ Redis session management and caching with advanced connection pooling
 - ✅ WebSocket real-time chat interface with conversation persistence
 - ✅ Comprehensive audit logging and security middleware
+- ✅ RESTful APIs with OpenAPI documentation
 
 **AI/ML Components:**
 - ✅ Local LLM integration via Ollama (Llama3 model)
@@ -263,24 +349,30 @@ python app/main.py
 - ✅ RAG pipeline for semantic log analysis
 - ✅ Vector store backup/restore functionality
 - ✅ Conversational context management
+- ✅ Real-time AI response streaming via WebSocket
 
 **SIEM Integration:**
 - ✅ Wazuh log processing and parsing
 - ✅ Custom detection rule development (12+ Sigma rules)
 - ✅ MITRE ATT&CK framework mapping
 - ✅ Multi-format log support (JSON/XML/plain text)
+- ✅ Real-time security alert dashboard
+- ✅ Threat intelligence feed integration
 
-**Infrastructure & Deployment:**
-- ✅ Docker containerization with multi-stage builds
+**Full-Stack Infrastructure:**
+- ✅ Docker containerization with multi-stage builds for frontend and backend
 - ✅ Docker Compose for development environments
 - ✅ Kubernetes manifests for production deployment
+- ✅ Nginx reverse proxy with SSL termination
 - ✅ Prometheus metrics and Grafana dashboards
 - ✅ Comprehensive backup/recovery system with AWS S3 support
 - ✅ Health checks and monitoring endpoints
 
 **Testing & Quality:**
-- ✅ Unit test framework with comprehensive coverage
+- ✅ Frontend: Jest with React Testing Library and Playwright E2E tests
+- ✅ Backend: Unit test framework with comprehensive coverage
 - ✅ Integration testing for component interactions
+- ✅ E2E testing for complete user workflows
 - ✅ Automated deployment testing scripts
 - ✅ Production readiness checklists
 
@@ -309,12 +401,14 @@ python app/main.py
 - 📋 Edge deployment capabilities
 
 ### 📊 **Implementation Metrics**
-- **Codebase**: 15,000+ lines of production Python code
-- **Test Coverage**: Unit tests across all major components
-- **Documentation**: 5 comprehensive guides (deployment, operations, disaster recovery)
+- **Frontend Codebase**: 8,000+ lines of TypeScript/React code with modern architecture
+- **Backend Codebase**: 15,000+ lines of production Python code
+- **Test Coverage**: Comprehensive unit, integration, and E2E tests across frontend and backend
+- **Documentation**: 5+ comprehensive guides (deployment, operations, disaster recovery, WebSocket integration)
 - **Monitoring**: 7 Grafana dashboards with 50+ metrics
 - **Detection Rules**: 12 production Sigma rules
-- **Architecture**: Microservices with 8 core services
+- **Architecture**: Full-stack microservices with 8 core backend services + Next.js frontend
+- **UI Components**: 20+ reusable Radix UI components with TypeScript interfaces
 
 ---
 
