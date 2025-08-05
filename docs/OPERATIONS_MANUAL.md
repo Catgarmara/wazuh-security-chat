@@ -732,24 +732,4 @@ curl -f https://yourdomain.com/health
 echo "Emergency rollback completed"
 ```
 
-## Contact Information
 
-### Escalation Matrix
-
-| Severity | Primary Contact | Secondary Contact | Manager |
-|----------|----------------|-------------------|---------|
-| Critical | On-call Engineer | Lead Developer | Engineering Manager |
-| High | Lead Developer | Senior Engineer | Engineering Manager |
-| Medium | Assigned Engineer | Team Lead | - |
-| Low | Assigned Engineer | - | - |
-
-### Emergency Contacts
-
-- **On-call Engineer**: +1-XXX-XXX-XXXX
-- **Engineering Manager**: +1-XXX-XXX-XXXX
-- **Security Team**: security@company.com
-- **Infrastructure Team**: infrastructure@company.com
-
----
-
-This operations manual should be reviewed and updated quarterly to ensure accuracy and completeness.
