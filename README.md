@@ -2,12 +2,12 @@
 
 **Real-time threat hunting system deployed in live security operations center.**
 
-Built to solve the critical problem of SOC analyst burnout and alert fatigue through intelligent automation. Uses local LLM deployment to ensure sensitive security data never leaves the organization's infrastructure - essential for banking and financial services compliance.
+Built to solve the critical problem of SOC analyst burnout and alert fatigue through intelligent automation. Uses local LLM deployment to ensure sensitive security data never leaves the organization's infrastructure.
 
 ## Business Problem Solved
 - SOC analysts spend 70% of time on repetitive alert triage
 - Security teams struggle with 10,000+ daily alerts across hybrid environments
-- Local AI deployment required for regulatory compliance (banking/finance)
+- Local AI deployment required for regulatory compliance
 - Need for 24/7 threat hunting capability without expanding headcount
 
 ## Production Deployment
@@ -274,7 +274,7 @@ python app/main.py
 ### **Production Requirements**
 - **Hardware**: GPU acceleration recommended for optimal LLM performance
 - **Security**: All data processing occurs locally with no external API dependencies
-- **Compliance**: Designed for regulated environments requiring data privacy (banking/finance)
+- **Compliance**: Designed for regulated environments requiring data privacy
 - **Scalability**: Containerized deployment supports enterprise-scale SOC operations
 
 ### **Enterprise Support**
@@ -282,3 +282,4 @@ python app/main.py
 - **Integration**: Compatible with existing SIEM infrastructure and security workflows
 - **Maintenance**: Regular updates for emerging threat detection patterns
 - **Compliance**: Audit logging and access controls for regulatory requirements
+
