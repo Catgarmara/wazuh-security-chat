@@ -209,5 +209,6 @@ __marimo__/
 # Kiro IDE files
 .kiro/
 
-# Test directories
+# Kiro IDE files
 tests/
+Legacy/
