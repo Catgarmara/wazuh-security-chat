@@ -1,10 +1,11 @@
-# Wazuh AI Companion - Operations Manual
+# Embedded Security AI Appliance - Operations Manual
 
 ## Overview
 
-This manual provides comprehensive operational procedures for managing the Wazuh AI Companion system in production. It covers day-to-day operations, maintenance tasks, troubleshooting, and incident response.
+This manual provides comprehensive operational procedures for managing your self-contained Security AI Appliance with embedded LlamaCpp engine. Covers day-to-day operations, model management, troubleshooting, and incident response.
 
-**🎯 Implementation Status**: All operational procedures and monitoring capabilities described are fully implemented with working scripts and dashboards.
+**🚀 Revolutionary Architecture**: Complete standalone appliance with no external LLM dependencies
+**🎯 Implementation Status**: All operational procedures fully implemented with embedded AI capabilities
 
 ## Table of Contents
 
@@ -21,10 +22,11 @@ This manual provides comprehensive operational procedures for managing the Wazuh
 
 ## System Architecture
 
-**📋 Deployment Options:**
-- **Production (Kubernetes)**: This manual focuses on K8s operations with manifests in `/kubernetes/`
-- **Development (Docker Compose)**: Local development using `docker-compose.yml`
-- **See**: `docs/DEPLOYMENT_GUIDE.md` for detailed deployment instructions
+**📋 Embedded Deployment Options:**
+- **Production (Docker Compose)**: Production-ready with `docker-compose.yml` 
+- **Kubernetes (Optional)**: Enterprise scaling with manifests in `/kubernetes/`
+- **Development**: Same compose file with development target
+- **See**: `DEPLOYMENT-EMBEDDED.md` for zero-dependency deployment instructions
 
 ### Component Overview
 

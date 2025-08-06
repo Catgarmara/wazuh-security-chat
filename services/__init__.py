@@ -6,6 +6,9 @@ from typing import Optional
 # Import services conditionally to handle missing dependencies
 __all__ = [
     'get_ai_service',
+    'initialize_ai_service',
+    'is_ai_service_ready',
+    'get_ai_service_status',
     'get_log_service', 
     'get_chat_service',
     'get_auth_service',
@@ -14,10 +17,10 @@ __all__ = [
 ]
 
 try:
-    from .ai_service import AIService
-    __all__.append('AIService')
+    from .embedded_ai_service import EmbeddedAIService
+    __all__.append('EmbeddedAIService')
 except ImportError:
-    AIService = None
+    EmbeddedAIService = None
 
 try:
     from .auth_service import AuthService
@@ -49,43 +52,41 @@ try:
 except ImportError:
     AnalyticsService = None
 
-# Singleton instances
-_ai_service_instance: Optional[AIService] = None
+# Import AI service factory
+try:
+    from core.ai_factory import AIServiceFactory
+except ImportError:
+    AIServiceFactory = None
+
+# Singleton instances for non-AI services
 _log_service_instance: Optional[LogService] = None
 _chat_service_instance: Optional[ChatService] = None
 _auth_service_instance: Optional[AuthService] = None
 _analytics_service_instance: Optional[AnalyticsService] = None
 
 # Thread locks for singleton creation
-_ai_service_lock = threading.Lock()
 _log_service_lock = threading.Lock()
 _chat_service_lock = threading.Lock()
 _auth_service_lock = threading.Lock()
 _analytics_service_lock = threading.Lock()
 
 
-def get_ai_service() -> Optional[AIService]:
+def get_ai_service() -> Optional[EmbeddedAIService]:
     """
-    Get AI service singleton instance.
+    Get Embedded AI service singleton instance using AIServiceFactory.
     
     Returns:
-        AIService instance or None if not available
+        EmbeddedAIService instance or None if not available
     """
-    global _ai_service_instance
-    
-    if AIService is None:
+    if AIServiceFactory is None:
+        print("AIServiceFactory not available")
         return None
     
-    if _ai_service_instance is None:
-        with _ai_service_lock:
-            if _ai_service_instance is None:
-                try:
-                    _ai_service_instance = AIService()
-                except Exception as e:
-                    print(f"Failed to initialize AI service: {e}")
-                    return None
-    
-    return _ai_service_instance
+    try:
+        return AIServiceFactory.get_ai_service()
+    except Exception as e:
+        print(f"Failed to get AI service from factory: {e}")
+        return None
 
 
 def get_log_service() -> Optional[LogService]:
@@ -184,14 +185,76 @@ def get_analytics_service() -> Optional[AnalyticsService]:
     return _analytics_service_instance
 
 
+def initialize_ai_service(config=None):
+    """
+    Initialize the AI service with optional configuration.
+    
+    Args:
+        config: Optional configuration dictionary for the AI service
+        
+    Returns:
+        True if initialization successful, False otherwise
+    """
+    if AIServiceFactory is None:
+        print("AIServiceFactory not available")
+        return False
+    
+    try:
+        return AIServiceFactory.initialize_ai_service(config)
+    except Exception as e:
+        print(f"Failed to initialize AI service: {e}")
+        return False
+
+
+def is_ai_service_ready():
+    """
+    Check if the AI service is ready to process requests.
+    
+    Returns:
+        True if service is ready, False otherwise
+    """
+    if AIServiceFactory is None:
+        return False
+    
+    try:
+        return AIServiceFactory.is_service_ready()
+    except Exception as e:
+        print(f"Failed to check AI service readiness: {e}")
+        return False
+
+
+def get_ai_service_status():
+    """
+    Get comprehensive status information about the AI service.
+    
+    Returns:
+        Dictionary containing service status information
+    """
+    if AIServiceFactory is None:
+        return {'error': 'AIServiceFactory not available'}
+    
+    try:
+        return AIServiceFactory.get_service_status()
+    except Exception as e:
+        print(f"Failed to get AI service status: {e}")
+        return {'error': str(e)}
+
+
 def reset_service_instances():
     """
     Reset all service instances (useful for testing).
     """
-    global _ai_service_instance, _log_service_instance, _chat_service_instance
+    global _log_service_instance, _chat_service_instance
     global _auth_service_instance, _analytics_service_instance
     
-    _ai_service_instance = None
+    # Reset AI service through factory
+    if AIServiceFactory is not None:
+        try:
+            AIServiceFactory.reset_factory()
+        except Exception as e:
+            print(f"Failed to reset AI service factory: {e}")
+    
+    # Reset other service instances
     _log_service_instance = None
     _chat_service_instance = None
     _auth_service_instance = None

@@ -20,28 +20,36 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - SECRET_KEY=${SECRET_KEY}
-      - OLLAMA_HOST=ollama
-      - OLLAMA_PORT=11434
+      # Embedded AI configuration - no external Ollama needed
+      - AI_SERVICE_TYPE=embedded
+      - MODELS_PATH=/app/models
+      - VECTORSTORE_PATH=/app/data/vectorstore
+      - MAX_CONCURRENT_MODELS=2
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - DEFAULT_TEMPERATURE=0.7
+      - DEFAULT_MAX_TOKENS=1024
+      - CONVERSATION_MEMORY_SIZE=10
       - LOG_LEVEL=INFO
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-      ollama:
-        condition: service_started
     networks:
       - wazuh-network
     restart: unless-stopped
+    volumes:
+      - model_data:/app/models        # Local model storage
+      - vectorstore_data:/app/data    # Vector store and cache data
     deploy:
       replicas: 2
       resources:
         limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
           cpus: '1.0'
           memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -150,35 +158,9 @@ services:
       retries: 5
     command: redis-server /usr/local/etc/redis/redis.conf
 
-  # Ollama LLM service (production)
-  ollama:
-    image: ollama/ollama:latest
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - wazuh-network
-    restart: unless-stopped
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 4G
-        reservations:
-          cpus: '1.0'
-          memory: 2G
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    entrypoint: ["/bin/sh", "-c"]
-    command: |
-      "ollama serve &
-      sleep 10 &&
-      ollama pull llama3 &&
-      wait"
+  # Note: Ollama service removed - using embedded LlamaCpp instead
+  # Models are now stored locally in model_data volume
+  # No external LLM service dependencies required
 
   # Nginx reverse proxy
   nginx:
@@ -369,7 +351,9 @@ volumes:
     driver: local
   redis_data:
     driver: local
-  ollama_data:
+  model_data:        # Local model storage
+    driver: local
+  vectorstore_data:  # Vector store persistence
     driver: local
   prometheus_data:
     driver: local

@@ -1,0 +1,322 @@
+│ Here is Claude's plan:                                                       │
+│ ╭──────────────────────────────────────────────────────────────────────────╮ │
+│ │ Enhanced Modern AI Web UI with Comprehensive SIEM Integration            │ │
+│ │                                                                          │ │
+│ │ Current State Analysis                                                   │ │
+│ │                                                                          │ │
+│ │ ✅ Solid Backend Foundation: FastAPI microservices with WebSocket,        │ │
+│ │ PostgreSQL, Redis, AI service❌ No Frontend: Currently pure backend -     │ │
+│ │ needs complete modern web UI✅ Advanced Wazuh Integration: SSH log        │ │
+│ │ access, vector store processing, comprehensive monitoring✅ Production    │ │
+│ │ SIEM Features: Grafana dashboards, Prometheus alerts, log processing     │ │
+│ │ pipeline✅ Enterprise Security: Full audit logging, metrics collection,   │ │
+│ │ health monitoring                                                        │ │
+│ │                                                                          │ │
+│ │ Phase 1: Modern Frontend Architecture (Week 1-2)                         │ │
+│ │                                                                          │ │
+│ │ 1.1 React/Next.js Application Setup                                      │ │
+│ │                                                                          │ │
+│ │ - Framework: Next.js 14 with TypeScript for SSR and performance          │ │
+│ │ - Styling: Tailwind CSS + Shadcn/ui components for Claude-like           │ │
+│ │ aesthetics                                                               │ │
+│ │ - State Management: Zustand for global state, React Query for server     │ │
+│ │ state                                                                    │ │
+│ │ - WebSocket: Native WebSocket with reconnection logic for real-time chat │ │
+│ │ - Authentication: JWT token management with automatic refresh            │ │
+│ │                                                                          │ │
+│ │ 1.2 Core UI Components                                                   │ │
+│ │                                                                          │ │
+│ │ - Layout System: Responsive sidebar + main content area                  │ │
+│ │ - Chat Interface: Message bubbles, typing indicators, markdown rendering │ │
+│ │ - Sidebar: Collapsible chat history with search and folders              │ │
+│ │ - Theme System: Dark/light mode with system preference detection         │ │
+│ │ - Loading States: Skeleton loaders and progressive loading               │ │
+│ │                                                                          │ │
+│ │ Phase 2: Chat Interface Implementation (Week 2-3)                        │ │
+│ │                                                                          │ │
+│ │ 2.1 Chat History Sidebar                                                 │ │
+│ │                                                                          │ │
+│ │ interface ChatSidebar {                                                  │ │
+│ │   - Recent conversations (last 7 days)                                   │ │
+│ │   - Search conversations with security context                           │ │
+│ │   - Folder organization by threat type/severity                          │ │
+│ │   - Pin important security investigations                                │ │
+│ │   - Export/import conversations                                          │ │
+│ │   - Security classification labels                                       │ │
+│ │ }                                                                        │ │
+│ │                                                                          │ │
+│ │ 2.2 Main Chat Area                                                       │ │
+│ │                                                                          │ │
+│ │ interface ChatInterface {                                                │ │
+│ │   - Message streaming with typing animation                              │ │
+│ │   - Markdown/code syntax highlighting                                    │ │
+│ │   - Security-focused message types (alerts, IOCs, TTPs)                  │ │
+│ │   - File upload support (logs, PCAP, reports)                            │ │
+│ │   - Copy/share individual messages with classification                   │ │
+│ │   - Message regeneration with context preservation                       │ │
+│ │ }                                                                        │ │
+│ │                                                                          │ │
+│ │ 2.3 Backend Enhancements                                                 │ │
+│ │                                                                          │ │
+│ │ - Streaming API: Server-sent events for real-time message streaming      │ │
+│ │ - File Upload Service: Handle security files with virus scanning         │ │
+│ │ - Message Search: Full-text search across conversation history with      │ │
+│ │ security context                                                         │ │
+│ │ - Export Service: PDF/JSON conversation exports with security metadata   │ │
+│ │                                                                          │ │
+│ │ Phase 3: Advanced Model Management System (Week 3-4)                     │ │
+│ │                                                                          │ │
+│ │ 3.1 Model Selection Interface (LM Studio-like)                           │ │
+│ │                                                                          │ │
+│ │ interface ModelManagement {                                              │ │
+│ │   - Model dropdown at top of interface                                   │ │
+│ │   - Available models list with security specializations                  │ │
+│ │   - Model download/install interface with checksums                      │ │
+│ │   - Model performance metrics (tokens/sec, accuracy)                     │ │
+│ │   - Security-focused model presets (threat hunting, malware analysis)    │ │
+│ │   - Custom model configuration for specific use cases                    │ │
+│ │ }                                                                        │ │
+│ │                                                                          │ │
+│ │ 3.2 Enhanced AI Service                                                  │ │
+│ │                                                                          │ │
+│ │ - Multi-Model Support: Specialized models for different security tasks   │ │
+│ │ - Model Hot-Swapping: Context-preserving model switching                 │ │
+│ │ - Resource Management: Intelligent loading/unloading with memory         │ │
+│ │ monitoring                                                               │ │
+│ │ - Security Model Presets: Pre-configured for MITRE ATT&CK, IOC analysis, │ │
+│ │  etc.                                                                    │ │
+│ │ - Model Performance Analytics: Track effectiveness for security use      │ │
+│ │ cases                                                                    │ │
+│ │                                                                          │ │
+│ │ 3.3 System Resource Monitor                                              │ │
+│ │                                                                          │ │
+│ │ interface ResourceMonitor {                                              │ │
+│ │   - GPU utilization (CUDA/OpenCL)                                        │ │
+│ │   - RAM usage by loaded models                                           │ │
+│ │   - CPU usage and thermal monitoring                                     │ │
+│ │   - Disk I/O for log processing                                          │ │
+│ │   - Model loading/unloading controls                                     │ │
+│ │   - Auto-unload based on security priority                               │ │
+│ │ }                                                                        │ │
+│ │                                                                          │ │
+│ │ Phase 4: Comprehensive SIEM Integration Dashboard (Week 4-5)             │ │
+│ │                                                                          │ │
+│ │ 4.1 Enhanced System Status Dashboard                                     │ │
+│ │                                                                          │ │
+│ │ interface SIEMStatusDashboard {                                          │ │
+│ │   // Core Application Status                                             │ │
+│ │   - AI model status and performance metrics                              │ │
+│ │   - WebSocket connections and chat statistics                            │ │
+│ │   - Database health (PostgreSQL, Redis)                                  │ │
+│ │   - API response times and error rates                                   │ │
+│ │                                                                          │ │
+│ │   // Wazuh SIEM Integration                                              │ │
+│ │   - Wazuh manager connection status                                      │ │
+│ │   - Agent status and connectivity                                        │ │
+│ │   - Rule engine performance                                              │ │
+│ │   - Log ingestion rates and queues                                       │ │
+│ │   - Decoder effectiveness                                                │ │
+│ │   - Index health and storage usage                                       │ │
+│ │                                                                          │ │
+│ │   // Security Operations Center (SOC) Metrics                            │ │
+│ │   - Real-time alert counters by severity                                 │ │
+│ │   - MITRE ATT&CK technique coverage                                      │ │
+│ │   - Threat detection accuracy metrics                                    │ │
+│ │   - False positive/negative rates                                        │ │
+│ │   - Mean time to detection (MTTD)                                        │ │
+│ │   - Mean time to response (MTTR)                                         │ │
+│ │                                                                          │ │
+│ │   // Infrastructure Monitoring                                           │ │
+│ │   - Server resource utilization                                          │ │
+│ │   - Network connectivity and latency                                     │ │
+│ │   - Storage capacity and I/O performance                                 │ │
+│ │   - Service uptime and availability                                      │ │
+│ │                                                                          │ │
+│ │   // Threat Intelligence Integration                                     │ │
+│ │   - IOC feed status and freshness                                        │ │
+│ │   - Threat intelligence source health                                    │ │
+│ │   - Reputation database updates                                          │ │
+│ │   - Signature database versions                                          │ │
+│ │ }                                                                        │ │
+│ │                                                                          │ │
+│ │ 4.2 Real-Time Security Alerts Interface                                  │ │
+│ │                                                                          │ │
+│ │ interface SecurityAlertsUI {                                             │ │
+│ │   - Live alert stream with severity color coding                         │ │
+│ │   - Alert filtering by MITRE ATT&CK techniques                           │ │
+│ │   - Interactive alert investigation workspace                            │ │
+│ │   - Automated IOC extraction and enrichment                              │ │
+│ │   - Alert correlation and campaign tracking                              │ │
+│ │   - Incident response workflow integration                               │ │
+│ │   - Alert acknowledgment and assignment                                  │ │
+│ │   - Escalation procedures and notifications                              │ │
+│ │ }                                                                        │ │
+│ │                                                                          │ │
+│ │ 4.3 Log Analysis and Visualization Components                            │ │
+│ │                                                                          │ │
+│ │ interface LogAnalytics {                                                 │ │
+│ │   - Real-time log ingestion status                                       │ │
+│ │   - Log parsing success/failure rates                                    │ │
+│ │   - Top log sources and volumes                                          │ │
+│ │   - Anomaly detection visualizations                                     │ │
+│ │   - Time-series analysis of security events                              │ │
+│ │   - Geolocation mapping of threats                                       │ │
+│ │   - Network traffic analysis                                             │ │
+│ │   - User behavior analytics (UBA)                                        │ │
+│ │ }                                                                        │ │
+│ │                                                                          │ │
+│ │ Phase 5: Advanced Security Features (Week 5-6)                           │ │
+│ │                                                                          │ │
+│ │ 5.1 Threat Hunting Interface                                             │ │
+│ │                                                                          │ │
+│ │ interface ThreatHunting {                                                │ │
+│ │   - Natural language threat hunting queries                              │ │
+│ │   - MITRE ATT&CK technique browser                                       │ │
+│ │   - IOC pivoting and expansion                                           │ │
+│ │   - Timeline reconstruction tools                                        │ │
+│ │   - Hypothesis testing framework                                         │ │
+│ │   - Evidence collection and documentation                                │ │
+│ │   - Threat actor profiling                                               │ │
+│ │   - Campaign tracking and attribution                                    │ │
+│ │ }                                                                        │ │
+│ │                                                                          │ │
+│ │ 5.2 Security Automation & Orchestration                                  │ │
+│ │                                                                          │ │
+│ │ interface SOAR Integration {                                             │ │
+│ │   - Automated response playbooks                                         │ │
+│ │   - Case management integration                                          │ │
+│ │   - Ticketing system connectors                                          │ │
+│ │   - Workflow automation engine                                           │ │
+│ │   - Evidence preservation tools                                          │ │
+│ │   - Compliance reporting automation                                      │ │
+│ │   - Threat intelligence sharing                                          │ │
+│ │   - Incident response coordination                                       │ │
+│ │ }                                                                        │ │
+│ │                                                                          │ │
+│ │ 5.3 Advanced User Experience                                             │ │
+│ │                                                                          │ │
+│ │ - Prompt Templates: Security-specific prompt library (YARA rules, IOC    │ │
+│ │ analysis, etc.)                                                          │ │
+│ │ - Investigation Workspaces: Persistent investigation contexts            │ │
+│ │ - Collaboration: Share security findings with SOC team                   │ │
+│ │ - Mobile SOC: Critical alert handling on mobile devices                  │ │
+│ │ - Security Shortcuts: Quick access to common security operations         │ │
+│ │ - Compliance Dashboard: Regulatory compliance status and reporting       │ │
+│ │                                                                          │ │
+│ │ Technical Implementation Details                                         │ │
+│ │                                                                          │ │
+│ │ Frontend Stack                                                           │ │
+│ │                                                                          │ │
+│ │ {                                                                        │ │
+│ │   "framework": "Next.js 14 + TypeScript",                                │ │
+│ │   "styling": "Tailwind CSS + Shadcn/ui + Security-themed components",    │ │
+│ │   "state": "Zustand + React Query + Security context management",        │ │
+│ │   "websocket": "Native WebSocket with security event streaming",         │ │
+│ │   "charts": "Recharts + D3.js for security visualizations",              │ │
+│ │   "testing": "Jest + React Testing Library + Playwright"                 │ │
+│ │ }                                                                        │ │
+│ │                                                                          │ │
+│ │ Enhanced Backend APIs                                                    │ │
+│ │                                                                          │ │
+│ │ {                                                                        │ │
+│ │   "wazuh_integration": "Wazuh API client with real-time status           │ │
+│ │ monitoring",                                                             │ │
+│ │   "siem_apis": "RESTful SIEM management and query interfaces",           │ │
+│ │   "threat_intel": "IOC enrichment and threat intelligence APIs",         │ │
+│ │   "security_automation": "SOAR integration and response automation",     │ │
+│ │   "compliance": "Automated compliance reporting and audit trails"        │ │
+│ │ }                                                                        │ │
+│ │                                                                          │ │
+│ │ New SIEM-Focused API Endpoints                                           │ │
+│ │                                                                          │ │
+│ │ - GET /api/v1/siem/status - Comprehensive SIEM system status             │ │
+│ │ - GET /api/v1/siem/alerts - Real-time security alerts stream             │ │
+│ │ - GET /api/v1/siem/agents - Wazuh agent status and management            │ │
+│ │ - GET /api/v1/siem/rules - Active detection rules and performance        │ │
+│ │ - GET /api/v1/siem/threats - Threat intelligence and IOC data            │ │
+│ │ - POST /api/v1/siem/hunt - Threat hunting query interface                │ │
+│ │ - GET /api/v1/siem/compliance - Compliance status and reports            │ │
+│ │ - POST /api/v1/siem/respond - Automated response actions                 │ │
+│ │                                                                          │ │
+│ │ SIEM Dashboard Components                                                │ │
+│ │                                                                          │ │
+│ │ frontend/                                                                │ │
+│ │ ├── components/                                                          │ │
+│ │ │   ├── siem/                                                            │ │
+│ │ │   │   ├── StatusDashboard.tsx    # Main SIEM status overview           │ │
+│ │ │   │   ├── AlertsStream.tsx       # Real-time alerts display            │ │
+│ │ │   │   ├── ThreatMap.tsx          # Geographic threat visualization     │ │
+│ │ │   │   ├── AgentStatus.tsx        # Wazuh agent monitoring              │ │
+│ │ │   │   ├── RulePerformance.tsx    # Detection rule analytics            │ │
+│ │ │   │   └── ComplianceDashboard.tsx # Regulatory compliance status       │ │
+│ │ │   ├── security/                                                        │ │
+│ │ │   │   ├── IOCEnrichment.tsx      # IOC analysis and enrichment         │ │
+│ │ │   │   ├── MITREMatrix.tsx        # ATT&CK technique coverage           │ │
+│ │ │   │   ├── ThreatHunting.tsx      # Interactive threat hunting          │ │
+│ │ │   │   └── IncidentWorkspace.tsx  # Investigation workspace             │ │
+│ │ │   └── visualizations/                                                  │ │
+│ │ │       ├── SecurityCharts.tsx     # Security-specific chart components  │ │
+│ │ │       ├── NetworkDiagrams.tsx    # Network topology and flows          │ │
+│ │ │       └── TimelineViews.tsx      # Security event timelines            │ │
+│ │                                                                          │ │
+│ │ Enhanced Wazuh Integration                                               │ │
+│ │                                                                          │ │
+│ │ class WazuhIntegrationService:                                           │ │
+│ │     """Enhanced Wazuh SIEM integration with real-time monitoring"""      │ │
+│ │                                                                          │ │
+│ │     async def get_system_status(self) -> Dict:                           │ │
+│ │         """Get comprehensive Wazuh system status"""                      │ │
+│ │         return {                                                         │ │
+│ │             "manager_status": self.get_manager_health(),                 │ │
+│ │             "agent_summary": self.get_agent_statistics(),                │ │
+│ │             "rule_engine": self.get_rule_performance(),                  │ │
+│ │             "log_analysis": self.get_log_processing_stats(),             │ │
+│ │             "storage_status": self.get_storage_metrics(),                │ │
+│ │             "api_health": self.get_api_status()                          │ │
+│ │         }                                                                │ │
+│ │                                                                          │ │
+│ │     async def stream_alerts(self) -> AsyncGenerator:                     │ │
+│ │         """Stream real-time security alerts"""                           │ │
+│ │         # WebSocket connection to Wazuh alerts                           │ │
+│ │                                                                          │ │
+│ │     async def get_threat_intelligence(self) -> Dict:                     │ │
+│ │         """Get current threat intelligence status"""                     │ │
+│ │         # IOC feeds, reputation data, signatures                         │ │
+│ │                                                                          │ │
+│ │ Enhanced Success Metrics                                                 │ │
+│ │                                                                          │ │
+│ │ Performance Targets                                                      │ │
+│ │                                                                          │ │
+│ │ - Frontend: <2s initial load, <100ms SIEM dashboard updates              │ │
+│ │ - SIEM Integration: <500ms alert display latency, 99.9% uptime           │ │
+│ │ - Security Operations: <30s alert investigation setup, <5min report      │ │
+│ │ generation                                                               │ │
+│ │                                                                          │ │
+│ │ Security Operations Metrics                                              │ │
+│ │                                                                          │ │
+│ │ - Alert Processing: >95% alert auto-classification accuracy              │ │
+│ │ - Threat Detection: <1 minute mean time to detection for critical        │ │
+│ │ threats                                                                  │ │
+│ │ - Investigation Efficiency: 70% reduction in investigation time          │ │
+│ │ - False Positive Rate: <5% for high-severity alerts                      │ │
+│ │                                                                          │ │
+│ │ User Experience Goals                                                    │ │
+│ │                                                                          │ │
+│ │ - SOC Analyst Productivity: 50% improvement in investigation speed       │ │
+│ │ - Threat Hunting: Natural language queries with 90% accuracy             │ │
+│ │ - Mobile Response: Full-featured mobile interface for critical alerts    │ │
+│ │ - Collaboration: Seamless sharing and handoff between analysts           │ │
+│ │                                                                          │ │
+│ │ SIEM-Specific Risk Mitigation                                            │ │
+│ │                                                                          │ │
+│ │ - Data Integrity: Cryptographic verification of security logs            │ │
+│ │ - Availability: Redundant SIEM connections with automatic failover       │ │
+│ │ - Performance: Optimized queries to prevent SIEM performance impact      │ │
+│ │ - Compliance: Built-in audit trails for all security operations          │ │
+│ │ - Privacy: Proper handling of sensitive security data and PII            │ │
+│ │                                                                          │ │
+│ │ This enhanced plan transforms your Wazuh AI into a comprehensive         │ │
+│ │ Security Operations Platform with world-class SIEM integration,          │ │
+│ │ maintaining the conversational AI experience while providing deep        │ │
+│ │ security operations capabilities that rival enterprise SIEM solutions.   │ │
+│ ╰──────────────────────────────────────────────────────────────────────────╯ │

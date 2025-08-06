@@ -20,6 +20,8 @@ from api.websocket import router as websocket_router
 from api.audit import router as audit_router
 from api.analytics import router as analytics_router
 from api.ai import router as ai_router
+
+from api.huggingface import router as huggingface_router
 from api.siem import router as siem_router
 from api.siem_websocket import router as siem_websocket_router
 from api.alert_management import router as alert_management_router
@@ -138,6 +140,7 @@ def create_app() -> FastAPI:
     app.include_router(audit_router, prefix=settings.api_prefix)
     app.include_router(analytics_router, prefix=settings.api_prefix)
     app.include_router(ai_router, prefix=settings.api_prefix)
+    app.include_router(huggingface_router, prefix=settings.api_prefix)
     app.include_router(siem_router, prefix=settings.api_prefix)
     app.include_router(alert_management_router, prefix=settings.api_prefix)
     app.include_router(threat_correlation_router, prefix=settings.api_prefix)

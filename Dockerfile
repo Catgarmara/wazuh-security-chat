@@ -5,15 +5,23 @@ FROM python:3.11-slim as base
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    AI_SERVICE_TYPE=embedded \
+    MODELS_PATH=/app/models \
+    VECTORSTORE_PATH=/app/data/vectorstore \
+    MAX_CONCURRENT_MODELS=3
 
-# Install system dependencies
+# Install system dependencies for embedded AI and general requirements
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    cmake \
+    make \
     libpq-dev \
     openssh-client \
     curl \
+    wget \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -21,6 +29,9 @@ RUN groupadd -r wazuh && useradd -r -g wazuh wazuh
 
 # Set working directory
 WORKDIR /app
+
+# Create directories for embedded AI
+RUN mkdir -p /app/models /app/data/vectorstore /app/data/cache
 
 # Copy requirements first for better caching
 COPY requirements.txt .

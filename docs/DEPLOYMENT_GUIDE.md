@@ -1,8 +1,9 @@
-# Wazuh AI Companion - Deployment Guide
+# Embedded Security AI Appliance - Deployment Guide
 
-This comprehensive guide covers deployment of the Wazuh AI Companion in different environments using Docker Compose and Kubernetes.
+This comprehensive guide covers deployment of the self-contained Security AI Appliance with embedded LlamaCpp engine and zero external dependencies.
 
-**🎯 Implementation Status**: All deployment methods described in this guide are fully implemented and tested.
+**🚀 Revolutionary Architecture**: Complete standalone appliance with no Ollama, API keys, or external services required.
+**🎯 Implementation Status**: All deployment methods fully implemented with embedded AI capabilities.
 
 ## Table of Contents
 
@@ -20,33 +21,36 @@ This comprehensive guide covers deployment of the Wazuh AI Companion in differen
 
 ### System Requirements
 
-**Minimum Requirements:**
-- CPU: 4 cores
-- RAM: 8GB
-- Storage: 50GB
+**Minimum Requirements (Embedded Appliance):**
+- CPU: 8 cores (for model inference)
+- RAM: 16GB (for model loading)
+- Storage: 500GB+ (for model storage)
 - OS: Linux, macOS, or Windows with WSL2
 
 **Recommended for Production:**
-- CPU: 8+ cores
-- RAM: 16GB+
-- Storage: 100GB+ SSD
+- CPU: 16+ cores (better model performance)
+- RAM: 32GB+ (multiple concurrent models)
+- Storage: 1TB+ NVMe SSD (faster model loading)
+- GPU: Optional NVIDIA GPU (significant acceleration)
 - OS: Linux (Ubuntu 20.04+ or CentOS 8+)
 
 ### Software Dependencies
 
-**Required:**
+**Required (Zero External Dependencies!):**
 - Docker 24.0+
 - Docker Compose 2.0+
 - Git
 
-**Optional (for Kubernetes):**
-- kubectl 1.25+
-- Helm 3.0+
-- Kubernetes cluster (1.25+)
+**That's It! No Additional Software Required:**
+- ❌ No Ollama installation
+- ❌ No external LLM services 
+- ❌ No API key management
+- ❌ No model server setup
 
-**Optional (for GPU support):**
-- NVIDIA Docker runtime
-- CUDA 11.8+
+**Optional Enhancements:**
+- NVIDIA Docker runtime (for GPU acceleration)
+- kubectl 1.25+ (for Kubernetes deployment)
+- CUDA 12.0+ (for optimal GPU performance)
 
 ### Installation Commands
 
@@ -78,26 +82,31 @@ git clone https://github.com/your-username/wazuh-ai.git
 cd wazuh-ai
 ```
 
-### 2. Development Deployment
+### 2. Zero-Touch Appliance Deployment
 
 ```bash
-# Test deployment configuration
-python3 scripts/test-deployment.py
+# Create required directories
+mkdir -p models data logs
 
-# Deploy development environment
-python3 scripts/deploy.py deploy --environment development
+# Set proper permissions
+chmod 755 models data logs
 
-# Or use Docker Compose directly
-docker-compose up -d --build
+# Launch complete self-contained appliance (one command!)
+docker-compose up -d
+
+# Check deployment status
+docker-compose ps
 ```
 
-### 3. Access Services
+### 3. Access Your Security AI Appliance
 
-- **Application**: http://localhost:8000
-- **Health Check**: http://localhost:8000/health
-- **Metrics**: http://localhost:8000/metrics
-- **Grafana**: http://localhost:3000 (admin/admin)
-- **Prometheus**: http://localhost:9090
+- **🎯 Main Interface**: http://localhost:3000 (Next.js web app)
+- **📚 Model Browser**: http://localhost:3000/models/browse
+- **👥 User Management**: http://localhost:3000/admin/users  
+- **📊 System Dashboard**: http://localhost:3000/dashboard
+- **🔧 API Documentation**: http://localhost:8000/docs
+- **💚 Health Check**: http://localhost:8000/health
+- **📈 Metrics**: http://localhost:8000/metrics
 
 ## Environment Configurations
 
@@ -154,37 +163,71 @@ profiles: []
 
 ## Docker Compose Deployment
 
-### Development Deployment
+### Embedded Appliance Deployment
 
 ```bash
-# Start all services with monitoring
+# Launch complete appliance with monitoring
 docker-compose --profile monitoring up -d --build
 
-# View logs
+# Create admin user (first time setup)
+docker-compose exec app python -c "
+from core.database import SessionLocal
+from models.database import User
+from core.security import get_password_hash
+
+db = SessionLocal()
+admin = User(
+    username='admin',
+    email='admin@company.com', 
+    full_name='System Administrator',
+    hashed_password=get_password_hash('admin123'),
+    is_admin=True,
+    is_active=True
+)
+db.add(admin)
+db.commit()
+print('Admin user created: admin/admin123')
+"
+
+# View appliance logs
 docker-compose logs -f
 
-# Check service status
+# Check all services status
 docker-compose ps
-
-# Stop services
-docker-compose down
 ```
 
-### Production Deployment
+### Production Appliance Deployment
 
 ```bash
 # Create production environment file
 cp .env.example .env.production
-# Edit .env.production with secure values
 
-# Deploy production stack
-python3 scripts/deploy.py deploy --environment production
+# Configure production settings
+cat > .env.production << EOF
+# Core Configuration
+AI_SERVICE_TYPE=embedded
+MODELS_PATH=/app/models
+MAX_CONCURRENT_MODELS=3
 
-# Or manually with Docker Compose
-docker-compose -f docker-compose.prod.yml up -d --build
+# Database
+DB_HOST=postgres
+DB_NAME=wazuh_chat
+DB_USER=postgres
+DB_PASSWORD=$(openssl rand -base64 32)
 
-# Check deployment health
-python3 scripts/test-deployment.py
+# Security
+SECRET_KEY=$(openssl rand -base64 32)
+
+# Redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+EOF
+
+# Deploy production appliance
+docker-compose -f docker-compose.yml --env-file .env.production up -d
+
+# Verify appliance health
+curl -f http://localhost:8000/health/detailed
 ```
 
 ### Service Configuration
@@ -265,8 +308,7 @@ kubectl apply -f kubernetes/postgres-deployment.yaml
 # Deploy Redis
 kubectl apply -f kubernetes/redis-deployment.yaml
 
-# Deploy Ollama (optional)
-kubectl apply -f kubernetes/ollama-deployment.yaml
+# Note: No Ollama deployment needed - embedded LlamaCpp used instead!
 
 # Deploy application
 kubectl apply -f kubernetes/app-deployment.yaml
@@ -355,18 +397,28 @@ Critical alerts configured:
 
 #### SSL/TLS Configuration
 ```bash
-# Generate SSL certificates
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout nginx/ssl/key.pem \
-  -out nginx/ssl/cert.pem
+# Generate SSL certificates for production
+mkdir -p ./nginx/ssl
+openssl req -x509 -newkey rsa:4096 -keyout ./nginx/ssl/key.pem \
+  -out ./nginx/ssl/cert.pem -days 365 -nodes \
+  -subj "/C=US/ST=State/L=City/O=Organization/CN=your-domain.com"
+
+# Deploy with SSL profile
+docker-compose --profile ssl up -d
 ```
 
-#### Environment Variables
+#### Embedded Appliance Security
 ```bash
 # Required production environment variables
-SECRET_KEY=your-secure-32-character-secret-key
-DB_PASSWORD=secure-database-password
-GRAFANA_PASSWORD=secure-grafana-password
+SECRET_KEY=$(openssl rand -base64 32)  # Auto-generate secure key
+DB_PASSWORD=$(openssl rand -base64 32) # Auto-generate DB password
+AI_SERVICE_TYPE=embedded               # Use embedded engine
+MODELS_PATH=/app/models               # Local model storage
+
+# Model access security
+MAX_CONCURRENT_MODELS=3               # Resource limits
+ALLOW_MODEL_DOWNLOADS=admin           # Restrict who can download
+MODEL_SIZE_LIMIT=50GB                # Prevent storage exhaustion
 ```
 
 #### Network Security
@@ -614,15 +666,38 @@ docker-compose build --pull --no-cache
 docker-compose up -d
 ```
 
-### Monitoring and Alerting
+### Appliance Monitoring and Alerting
 
-#### Health Checks
+#### Comprehensive Health Checks
 ```bash
-# Automated health check script
+# Automated appliance health check script
 #!/bin/bash
+echo "🔍 Checking Embedded Security AI Appliance..."
+
+# Core API health
 curl -f http://localhost:8000/health || exit 1
-curl -f http://localhost:9090/-/ready || exit 1
+echo "✅ Core API healthy"
+
+# Embedded AI service health  
+curl -f http://localhost:8000/api/embedded-ai/health || exit 1
+echo "✅ Embedded AI engine healthy"
+
+# HuggingFace integration
+curl -f http://localhost:8000/api/huggingface/categories || exit 1
+echo "✅ HuggingFace integration working"
+
+# Frontend health
 curl -f http://localhost:3000/api/health || exit 1
+echo "✅ Web interface healthy"
+
+# Model storage check
+if [ -d "./models" ] && [ "$(ls -A ./models)" ]; then
+    echo "✅ Models directory accessible with $(ls ./models | wc -l) models"
+else
+    echo "⚠️ Models directory empty - download models via web interface"
+fi
+
+echo "🎉 Embedded Security AI Appliance fully operational!"
 ```
 
 #### Performance Monitoring

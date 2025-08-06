@@ -20,8 +20,8 @@ from models.database import User, ChatSession, Message, MessageRole
 from models.schemas import ChatMessageRequest, ChatMessageResponse, MessageCreate
 # Import services directly to avoid circular imports
 from services.auth_service import AuthService
-from services.ai_service import AIService  
 from services.log_service import LogService
+from core.ai_factory import AIServiceFactory
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +52,9 @@ class ConnectionManager:
         
         self.auth_service = AuthService()
         try:
-            self.ai_service = AIService()
+            self.ai_service = AIServiceFactory.get_ai_service()
         except Exception as e:
-            logger.warning(f"Failed to initialize AI service: {e}")
+            logger.warning(f"Failed to initialize Embedded AI service: {e}")
             self.ai_service = None
     
     async def connect(self, websocket: WebSocket, token: str) -> str:
@@ -728,9 +728,9 @@ class ChatService:
         self.connection_manager = ConnectionManager()
         self.auth_service = AuthService()
         try:
-            self.ai_service = AIService()
+            self.ai_service = AIServiceFactory.get_ai_service()
         except Exception as e:
-            logger.warning(f"Failed to initialize AI service: {e}")
+            logger.warning(f"Failed to initialize Embedded AI service: {e}")
             self.ai_service = None
         self.command_processor = CommandProcessor()
     

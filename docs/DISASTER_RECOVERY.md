@@ -1,5 +1,9 @@
 # Wazuh AI Companion - Disaster Recovery Guide
 
+> **IMPORTANT NOTICE**: This document contains references to the deprecated AIService which used Ollama. 
+> The system now uses EmbeddedAIService with LlamaCpp. All code examples referencing AIService 
+> should be updated to use EmbeddedAIService instead.
+
 This document provides comprehensive disaster recovery procedures for the Wazuh AI Companion system, including backup strategies, recovery procedures, and business continuity planning.
 
 ## Table of Contents

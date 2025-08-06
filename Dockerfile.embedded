@@ -1,0 +1,131 @@
+# Embedded AI Security Appliance Dockerfile
+# Standalone version with LlamaCpp integration - no external dependencies
+
+FROM python:3.11-slim as base
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies for LlamaCpp compilation
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    wget \
+    curl \
+    gcc \
+    g++ \
+    libffi-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install CUDA toolkit for GPU support (optional)
+# Uncomment if you need GPU acceleration
+# RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb \
+#     && dpkg -i cuda-keyring_1.0-1_all.deb \
+#     && apt-get update \
+#     && apt-get install -y cuda-toolkit-12-2
+
+# Create app directory
+WORKDIR /app
+
+# Create required directories
+RUN mkdir -p /app/models /app/data /app/logs
+
+# Development stage
+FROM base as development
+
+# Copy requirements
+COPY requirements-embedded.txt .
+
+# Install Python dependencies
+# For CPU-only version
+RUN pip install --no-cache-dir -r requirements-embedded.txt
+
+# For GPU version with CUDA support, uncomment:
+# RUN CMAKE_ARGS="-DLLAMA_CUBLAS=on" pip install llama-cpp-python --force-reinstall --no-cache-dir
+
+# Copy application code
+COPY . .
+
+# Set permissions
+RUN chmod +x /app/models /app/data /app/logs
+
+# Expose port
+EXPOSE 8000
+
+# Development command
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# Production stage
+FROM base as production
+
+# Copy requirements
+COPY requirements-embedded.txt .
+
+# Install Python dependencies (production)
+RUN pip install --no-cache-dir -r requirements-embedded.txt
+
+# For production with GPU support:
+# RUN CMAKE_ARGS="-DLLAMA_CUBLAS=on" pip install llama-cpp-python --force-reinstall --no-cache-dir
+
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy application code
+COPY --chown=appuser:appuser . .
+
+# Set permissions
+RUN chown -R appuser:appuser /app
+RUN chmod +x /app/models /app/data /app/logs
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Production command with multiple workers
+CMD ["gunicorn", "app.main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
+
+# Multi-stage build for smaller production image
+FROM base as minimal
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy only the installed packages from production stage
+COPY --from=production /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=production /usr/local/bin /usr/local/bin
+
+# Create directories and user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN mkdir -p /app/models /app/data /app/logs
+RUN chown -R appuser:appuser /app
+
+# Copy application
+COPY --chown=appuser:appuser app/ /app/app/
+COPY --chown=appuser:appuser services/ /app/services/
+COPY --chown=appuser:appuser api/ /app/api/
+COPY --chown=appuser:appuser core/ /app/core/
+COPY --chown=appuser:appuser models/ /app/models/
+COPY --chown=appuser:appuser main.py /app/
+
+WORKDIR /app
+USER appuser
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

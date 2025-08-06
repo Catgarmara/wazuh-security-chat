@@ -1,34 +1,33 @@
-# Production SOC Automation Platform
+# Embedded Security AI Appliance
 
-**Full-stack AI-powered threat hunting system with modern web interface and real-time SIEM integration.**
+**Self-contained security appliance with embedded LLM engine - zero external dependencies.**
 
-Complete enterprise solution combining intelligent backend automation with intuitive frontend interface. Built to solve the critical problem of SOC analyst burnout and alert fatigue through intelligent automation and modern user experience. Uses local LLM deployment to ensure sensitive security data never leaves the organization's infrastructure - essential for banking and financial services compliance.
+A revolutionary "LM Studio for Security Operations" - a turnkey security appliance that combines advanced model management capabilities with security-focused log analysis. Completely self-contained with embedded LlamaCpp engine, eliminating all external dependencies including Ollama.
 
-## Business Problem Solved
-- SOC analysts spend 70% of time on repetitive alert triage
-- Security teams struggle with 10,000+ daily alerts across hybrid environments
-- Local AI deployment required for regulatory compliance (banking/finance)
-- Need for 24/7 threat hunting capability without expanding headcount
+## Revolution in Security AI Deployment
+- **Zero Dependencies**: No external LLM services, APIs, or cloud dependencies required
+- **Complete Self-Contained**: Built-in model management, HuggingFace integration, user system
+- **Turnkey Solution**: Docker compose up → fully functional security AI appliance
+- **Enterprise Ready**: Role-based permissions, model access control, comprehensive monitoring
+- **LM Studio for Security**: Intuitive model browser, one-click downloads, hot-swapping capabilities
 
-## Production Deployment
-Currently processing real security events in enterprise environment:
-- 500GB+ of archived security logs from production SIEM
-- Real-time alert analysis and automated triage recommendations
-- Integration with existing CrowdStrike XDR and Wazuh infrastructure
-- Zero external API dependencies ensuring complete data privacy
-- Sub-200ms response times for similarity-based threat detection
+## Embedded AI Architecture
+Complete standalone security appliance with no external dependencies:
+- **Embedded LlamaCpp Engine**: Direct model inference without Ollama or external services
+- **Integrated Model Management**: Browse, download, and manage models from HuggingFace directly
+- **Built-in User System**: Role-based access control with model permissions
+- **Self-Contained Storage**: Local model storage with intelligent caching and optimization
+- **Production Ready**: Enterprise-grade monitoring, backup/recovery, and resource management
 
 ---
 
 ## Technical Capabilities
 
-**Full-Stack Production Infrastructure:**
-- **Frontend**: Next.js 14 with TypeScript, Tailwind CSS, and Radix UI components
-- **Real-time Communication**: WebSocket integration with automatic reconnection
-- **Backend**: FastAPI microservices with role-based access control
-- **Enterprise SIEM**: CrowdStrike Falcon XDR and Wazuh integration
-- **AI Processing**: RAG-enhanced log analysis processing 500GB+ security archives
-- **Local LLM**: GPU-accelerated deployment for real-time analysis
+**Embedded Infrastructure:**
+- **Self-Contained LLM**: LlamaCpp with CPU/GPU acceleration (no Ollama dependency)
+- **Model Management**: HuggingFace browser, downloader, and local storage system
+- **User Management**: Complete authentication system with model access permissions
+- **Resource Monitoring**: Real-time system resource tracking and model performance metrics
 
 **Detection Engineering:**
 - Custom detection rule development with 30%+ false positive reduction
@@ -38,59 +37,39 @@ Currently processing real security events in enterprise environment:
 - Integration with existing SOC workflows and SIEM platforms
 ---
 
-## Full-Stack System Architecture
+## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        Frontend Layer (Next.js 14)                 │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────────┐ │
-│  │  Modern Web UI   │  │  Real-time Chat  │  │   SIEM Dashboard    │ │
-│  │  (React 18 +     │  │   (WebSocket)    │  │   (Security Alerts) │ │
-│  │  TypeScript)     │  │                  │  │                     │ │
-│  └──────────────────┘  └──────────────────┘  └─────────────────────┘ │
-│           │                      │                        │          │
-│           └──────────────────────┼────────────────────────┘          │
-│                                  │                                   │
+│                    Embedded Security AI Appliance                  │
+│  ┌──────────────────┐  ┌───────────────────────────────────────────┐│
+│  │  Web Interface   │  │           Embedded LlamaCpp Engine        ││
+│  │  • Model Browser │◄─┤  • CPU/GPU Acceleration (No Ollama!)     ││
+│  │  • User Control  │  │  • Hot Model Swapping                    ││
+│  │  • Chat & SIEM   │  │  • Resource Management                   ││
+│  └──────────────────┘  └───────────────────────────────────────────┘│
+│           │                            ▲                            │
+│           ▼                            │                            │
+│  ┌──────────────────┐  ┌───────────────────────────────────────────┐│
+│  │ PostgreSQL       │  │        HuggingFace Integration           ││
+│  │ • Users & Perms  │◄─┤  • Model Browser & Downloader            ││
+│  │ • Audit Logs     │  │  • Local Model Storage (./models)        ││
+│  │ • Chat History   │  │  • Quantization Support                  ││
+│  └──────────────────┘  └───────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────────┘
-                                   │ JWT Auth + REST API + WebSocket
-                                   ▼
+                           │
+                           ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    Backend Services (FastAPI)                      │
-│  ┌─────────────────┐  ┌──────────────────┐  ┌─────────────────────┐ │
-│  │   Authentication│  │    Chat Service  │  │    SIEM Services    │ │
-│  │   & RBAC        │  │    + WebSocket   │  │   (Log Analysis)    │ │
-│  │                 │  │                  │  │                     │ │
-│  └─────────────────┘  └──────────────────┘  └─────────────────────┘ │
-│           │                      │                        │          │
-│           └──────────────────────┼────────────────────────┘          │
-│                                  │                                   │
-└─────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                       AI & Data Layer                              │
-│  ┌─────────────────┐  ┌──────────────────┐  ┌─────────────────────┐ │
-│  │   PostgreSQL    │  │   Local LLM      │  │   FAISS Vector      │ │
-│  │   + Redis       │  │   (Llama3 +      │  │   Store +           │ │
-│  │   Cache         │  │   Ollama)        │  │   HuggingFace       │ │
-│  └─────────────────┘  └──────────────────┘  └─────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│              Enterprise SIEM Integration                           │
-│         CrowdStrike Falcon XDR • Wazuh • OpenSearch               │
+│                      External SIEM Integration                     │
+│            Wazuh • Elastic • Splunk • Any Log Source              │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Data Flow:**
-1. **Modern Web Interface** provides intuitive SOC analyst experience
-2. **Real-time WebSocket** enables instant chat communication with AI
-3. **Enterprise SIEM** forwards security events and alerts to backend
-4. **Vector Store** indexes log data for semantic similarity search  
-5. **Local LLM** processes analyst queries without external API calls
-6. **Backend Services** coordinate authentication, data processing, and responses
-7. **Frontend Dashboard** displays threat hunting results and SIEM integration
+**Embedded Data Flow:**
+1. **Model Management** - Browse HuggingFace, download, and manage local models
+2. **User Control** - Admin interface for permissions, resource monitoring, model access
+3. **Embedded LLM** - Direct LlamaCpp inference with no external service dependencies
+4. **Security Analysis** - Process SIEM data with locally-hosted, enterprise-controlled models
 
 ---
 
@@ -144,72 +123,56 @@ Currently processing real security events in enterprise environment:
 
 ## Quick Start
 
-### Prerequisites
+### Prerequisites - Zero External Dependencies!
 ```bash
-# Install Ollama and pull Llama3 model
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull llama3
+# Only Docker required - no Ollama installation needed!
+docker --version
+docker-compose --version
 
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Install Node.js and frontend dependencies
-cd frontend
-npm install
-cd ..
-
-# Set up databases (PostgreSQL and Redis required)
-# See docs/deployment.md for detailed setup instructions
+# That's it! The appliance includes everything:
+# ✅ Embedded LlamaCpp engine
+# ✅ Model management system  
+# ✅ User authentication
+# ✅ HuggingFace integration
+# ✅ Complete web interface
 ```
 
-### Full-Stack Development Setup
+### Launch the Embedded Appliance
 ```bash
 # Clone and navigate to project
 git clone https://github.com/yourusername/wazuh-ai
 cd wazuh-ai
 
-# Initialize database
-python scripts/init_db.py
+# Create required directories
+mkdir -p models data logs
 
-# Option 1: Docker Development (Recommended)
-docker-compose up -d  # Start backend services
-cd frontend && npm run dev  # Start frontend dev server
+# Launch complete appliance (one command!)
+docker-compose up -d
 
-# Option 2: Manual Development
-# Terminal 1: Start backend
-python app/main.py
-
-# Terminal 2: Start frontend
-cd frontend
-npm run dev
-
-# Access the application:
-# - Frontend: http://localhost:3000 (Next.js dev server)
-# - Backend API: http://localhost:8000 (FastAPI)
-# - WebSocket: ws://localhost:8000/ws
+# Access appliance interface
+# Web Interface: http://localhost:3000
+# API Documentation: http://localhost:8000/docs
+# Health Check: http://localhost:8000/health
 ```
 
-### Production Deployment
+### Getting Started with Your Appliance
 ```bash
-# Build and deploy full stack
-docker-compose -f docker-compose.prod.yml up -d
+# 1. First time setup - create admin user
+curl -X POST "http://localhost:8000/api/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","email":"admin@company.com","password":"admin123","full_name":"System Administrator"}'
 
-# Or build frontend for production
-cd frontend
-npm run build
-npm start
+# 2. Browse and download your first model
+# Visit: http://localhost:3000/models/browse
+# Search: "llama-2-7b-chat" or "mistral-7b-instruct"
+# Click: "Download Q4_0" (recommended for balance of speed/quality)
 
-# Access web interface at configured domain/port
-# Create admin user via API or use default test credentials
-```
-
-### Example Queries
-```
- "Show me SSH brute force attempts from the last 3 days"
- "What PowerShell commands were executed with suspicious parameters?"
- "Find any data exfiltration attempts using Invoke-WebRequest"
- "Give me a summary of all high-severity alerts"
- "Are there any signs of lateral movement in the network?"
+# 3. Load model and start analyzing security logs
+# Visit: http://localhost:3000/chat
+# Example queries:
+"Show me SSH brute force attempts from the last 3 days"
+"What PowerShell commands were executed with suspicious parameters?"
+"Find any data exfiltration attempts using Invoke-WebRequest"
 ```
 
 ---
@@ -259,35 +222,20 @@ npm start
 
 ## Technical Stack
 
-### **Frontend Technologies**
-- **Framework**: Next.js 14 with React 18 and TypeScript 5.3+
-- **UI Library**: Tailwind CSS 3.4+ with Radix UI components
-- **State Management**: Zustand with React Query for server state
-- **Real-time**: WebSocket client with automatic reconnection
-- **Authentication**: JWT token management with secure HTTP-only cookies
-- **Development**: ESLint, Prettier, and comprehensive TypeScript configuration
-- **Testing**: Jest with React Testing Library and Playwright E2E tests
-
-### **Backend Infrastructure**
-- **Framework**: FastAPI microservices with dependency injection
+### **Production Infrastructure**
 - **Database**: PostgreSQL (primary data), Redis (sessions/cache)
-- **Authentication**: JWT tokens with bcrypt password hashing and RBAC
-- **API**: RESTful endpoints + WebSocket for real-time communication
-- **Testing**: Comprehensive unit/integration/E2E test suite
-- **Monitoring**: Prometheus metrics with Grafana dashboards
+- **Backend**: FastAPI microservices with dependency injection
+- **Authentication**: JWT tokens with bcrypt password hashing
+- **API**: RESTful endpoints + WebSocket for real-time chat
+- **Testing**: Comprehensive unit/integration test suite
 
-### **AI/ML Components**
-- **LLM**: Llama3 8B via Ollama, local GPU acceleration
+### **Embedded AI Components**
+- **LLM Engine**: LlamaCpp with direct model inference (no Ollama dependency)
+- **Model Management**: HuggingFace browser, downloader, local storage, hot-swapping
+- **User System**: Role-based authentication with model access permissions
+- **Resource Monitoring**: Real-time CPU/Memory/GPU usage tracking
 - **Vector Database**: FAISS with HuggingFace embeddings
 - **RAG Pipeline**: Semantic search with conversation context
-- **Real-time Processing**: WebSocket-based AI response streaming
-
-### **DevOps & Deployment**
-- **Containerization**: Docker with multi-stage builds for frontend and backend
-- **Orchestration**: Docker Compose (development) and Kubernetes (production)
-- **Reverse Proxy**: Nginx with SSL termination and load balancing
-- **Monitoring**: Comprehensive observability with metrics, logging, and alerting
-- **Backup/Recovery**: Automated backup systems with disaster recovery procedures
 
 ### **Lab Environment**
 - **SIEM Platform**: Wazuh 4.12 (Ubuntu 20.04 LTS)
@@ -322,57 +270,40 @@ npm start
 
 ### ✅ **Fully Implemented Features**
 
-**Modern Frontend (Next.js 14):**
-- ✅ React 18 with TypeScript and modern hooks architecture
-- ✅ Tailwind CSS with Radix UI component library for professional design
-- ✅ Zustand state management with React Query for server state
-- ✅ Real-time WebSocket integration with automatic reconnection
-- ✅ JWT authentication with secure token management
-- ✅ Responsive design with mobile-first approach
-- ✅ Comprehensive SIEM dashboard with security alerts visualization
-- ✅ Interactive chat interface with AI conversation management
-- ✅ Model configuration and performance monitoring components
-- ✅ Role-based UI with protected routes and permissions
-
-**Backend Microservices:**
-- ✅ FastAPI microservices architecture with dependency injection  
+**Core Application:**
+- ✅ FastAPI microservices architecture with dependency injection
 - ✅ JWT authentication with role-based access control (Admin/Analyst/Viewer)
 - ✅ PostgreSQL database with Alembic migrations
 - ✅ Redis session management and caching with advanced connection pooling
 - ✅ WebSocket real-time chat interface with conversation persistence
 - ✅ Comprehensive audit logging and security middleware
-- ✅ RESTful APIs with OpenAPI documentation
 
-**AI/ML Components:**
-- ✅ Local LLM integration via Ollama (Llama3 model)
-- ✅ FAISS vector store with HuggingFace embeddings
-- ✅ RAG pipeline for semantic log analysis
-- ✅ Vector store backup/restore functionality
-- ✅ Conversational context management
-- ✅ Real-time AI response streaming via WebSocket
+**Embedded AI Components:**
+- ✅ **Embedded LlamaCpp Engine** - Direct model inference without external dependencies
+- ✅ **HuggingFace Integration** - Browse, search, and download models directly
+- ✅ **Model Management System** - Local storage, hot-swapping, resource monitoring
+- ✅ **User Permission System** - Role-based model access control
+- ✅ **FAISS Vector Store** - HuggingFace embeddings for semantic search
+- ✅ **RAG Pipeline** - Security log analysis with conversation context
+- ✅ **Resource Monitoring** - Real-time CPU/Memory/GPU usage tracking
 
 **SIEM Integration:**
 - ✅ Wazuh log processing and parsing
 - ✅ Custom detection rule development (12+ Sigma rules)
 - ✅ MITRE ATT&CK framework mapping
 - ✅ Multi-format log support (JSON/XML/plain text)
-- ✅ Real-time security alert dashboard
-- ✅ Threat intelligence feed integration
 
-**Full-Stack Infrastructure:**
-- ✅ Docker containerization with multi-stage builds for frontend and backend
+**Infrastructure & Deployment:**
+- ✅ Docker containerization with multi-stage builds
 - ✅ Docker Compose for development environments
 - ✅ Kubernetes manifests for production deployment
-- ✅ Nginx reverse proxy with SSL termination
 - ✅ Prometheus metrics and Grafana dashboards
 - ✅ Comprehensive backup/recovery system with AWS S3 support
 - ✅ Health checks and monitoring endpoints
 
 **Testing & Quality:**
-- ✅ Frontend: Jest with React Testing Library and Playwright E2E tests
-- ✅ Backend: Unit test framework with comprehensive coverage
+- ✅ Unit test framework with comprehensive coverage
 - ✅ Integration testing for component interactions
-- ✅ E2E testing for complete user workflows
 - ✅ Automated deployment testing scripts
 - ✅ Production readiness checklists
 
@@ -401,14 +332,12 @@ npm start
 - 📋 Edge deployment capabilities
 
 ### 📊 **Implementation Metrics**
-- **Frontend Codebase**: 8,000+ lines of TypeScript/React code with modern architecture
-- **Backend Codebase**: 15,000+ lines of production Python code
-- **Test Coverage**: Comprehensive unit, integration, and E2E tests across frontend and backend
-- **Documentation**: 5+ comprehensive guides (deployment, operations, disaster recovery, WebSocket integration)
+- **Codebase**: 15,000+ lines of production Python code
+- **Test Coverage**: Unit tests across all major components
+- **Documentation**: 5 comprehensive guides (deployment, operations, disaster recovery)
 - **Monitoring**: 7 Grafana dashboards with 50+ metrics
 - **Detection Rules**: 12 production Sigma rules
-- **Architecture**: Full-stack microservices with 8 core backend services + Next.js frontend
-- **UI Components**: 20+ reusable Radix UI components with TypeScript interfaces
+- **Architecture**: Microservices with 8 core services
 
 ---
 
@@ -428,14 +357,18 @@ npm start
 
 ## Deployment & Security
 
-### **Production Requirements**
-- **Hardware**: GPU acceleration recommended for optimal LLM performance
-- **Security**: All data processing occurs locally with no external API dependencies
-- **Compliance**: Designed for regulated environments requiring data privacy (banking/finance)
-- **Scalability**: Containerized deployment supports enterprise-scale SOC operations
+### **Appliance Requirements**
+- **Hardware**: 16GB+ RAM, 500GB+ storage for models, optional GPU acceleration
+- **Dependencies**: Only Docker/Docker Compose - no external services required
+- **Security**: Complete air-gapped operation with local model inference
+- **Compliance**: Zero external API calls - all processing occurs on-premises
+- **Deployment**: Single-command Docker Compose deployment
+- **Management**: Web-based admin interface for complete system control
 
-### **Enterprise Support**
-- **Documentation**: Complete deployment guides for production environments
-- **Integration**: Compatible with existing SIEM infrastructure and security workflows
-- **Maintenance**: Regular updates for emerging threat detection patterns
-- **Compliance**: Audit logging and access controls for regulatory requirements
+### **Appliance Features**
+- **Zero-Touch Deployment**: Docker Compose up → fully functional security AI
+- **Complete Self-Management**: No external service management or API keys required
+- **Enterprise Security**: Built-in user management, audit logging, resource controls
+- **Model Flexibility**: Support for any HuggingFace-compatible model with quantization
+- **Turnkey Solution**: Like "LM Studio for Security" - everything included and managed
+- **Resource Awareness**: Intelligent model loading based on available system resources

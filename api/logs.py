@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from core.database import get_db
 from core.permissions import get_current_active_user, admin_required
 from services.log_service import LogService, LogFilter, SSHCredentials
-from services.ai_service import AIService
+from services.embedded_ai_service import EmbeddedAIService
 from models.database import User
 from models.schemas import (
     LogEntryResponse, LogEntrySearch, LogStats as LogStatsSchema,
@@ -34,9 +34,9 @@ def get_log_service() -> LogService:
     return LogService()
 
 
-def get_ai_service() -> AIService:
-    """Get AI service instance."""
-    return AIService()
+def get_ai_service() -> EmbeddedAIService:
+    """Get Embedded AI service instance."""
+    return EmbeddedAIService()
 
 
 @router.get("/health")

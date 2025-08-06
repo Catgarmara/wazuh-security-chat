@@ -20,18 +20,33 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - SECRET_KEY=development_secret_key_32_characters_minimum
-      - OLLAMA_HOST=ollama
-      - OLLAMA_PORT=11434
+      # Embedded AI configuration - no external Ollama needed
+      - AI_SERVICE_TYPE=embedded
+      - MODELS_PATH=/app/models
+      - VECTORSTORE_PATH=/app/data/vectorstore
+      - MAX_CONCURRENT_MODELS=3
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - DEFAULT_TEMPERATURE=0.7
+      - DEFAULT_MAX_TOKENS=1024
+      - CONVERSATION_MEMORY_SIZE=10
     volumes:
       - .:/app
       - /app/__pycache__
+      - model_data:/app/models        # Local model storage
+      - vectorstore_data:/app/data    # Vector store and cache data
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-      ollama:
-        condition: service_started
+    # GPU support for LlamaCpp (optional - uncomment if GPU available)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
     networks:
       - wazuh-network
     restart: unless-stopped
@@ -121,32 +136,9 @@ services:
       retries: 5
     command: redis-server --appendonly yes
 
-  # Ollama LLM service
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - wazuh-network
-    restart: unless-stopped
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    # Pull the default model on startup
-    entrypoint: ["/bin/sh", "-c"]
-    command: |
-      "ollama serve &
-      sleep 10 &&
-      ollama pull llama3 &&
-      wait"
+  # Note: Ollama service removed - using embedded LlamaCpp instead
+  # Models are now stored locally in ./models directory
+  # No external LLM service dependencies required
 
   # Nginx reverse proxy (optional for production-like setup)
   nginx:
@@ -285,7 +277,9 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  ollama_data:
+  # ollama_data: removed - no longer needed
+  model_data:        # Local model storage
+  vectorstore_data:  # Vector store persistence
   prometheus_data:
   grafana_data:
   alertmanager_data:

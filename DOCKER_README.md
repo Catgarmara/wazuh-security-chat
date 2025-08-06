@@ -62,7 +62,7 @@ Key environment variables (see `.env.example` for complete list):
 - `ENVIRONMENT`: development/staging/production
 - `SECRET_KEY`: JWT signing key (minimum 32 characters)
 - `DB_PASSWORD`: PostgreSQL password
-- `OLLAMA_MODEL`: LLM model to use (default: llama3)
+- `MODELS_PATH`: Path to store local LLM models (default: ./models)
 
 ### Health Checks
 

@@ -104,23 +104,46 @@ class SecuritySettings(BaseSettings):
         return v
 
 
-class AISettings(BaseSettings):
-    """AI/ML configuration settings."""
+class EmbeddedAISettings(BaseSettings):
+    """Embedded AI configuration settings for LlamaCpp integration."""
     
-    ollama_host: str = Field(default="localhost", env="OLLAMA_HOST")
-    ollama_port: int = Field(default=11434, env="OLLAMA_PORT")
-    ollama_model: str = Field(default="llama3", env="OLLAMA_MODEL")
-    embedding_model: str = Field(default="all-MiniLM-L6-v2", env="EMBEDDING_MODEL")
+    models_path: str = Field(default="./models", env="MODELS_PATH")
+    vectorstore_path: str = Field(default="./data/vectorstore", env="VECTORSTORE_PATH")
+    embedding_model_name: str = Field(default="all-MiniLM-L6-v2", env="EMBEDDING_MODEL")
+    max_concurrent_models: int = Field(default=3, env="MAX_CONCURRENT_MODELS")
+    conversation_memory_size: int = Field(default=10, env="CONVERSATION_MEMORY_SIZE")
+    default_temperature: float = Field(default=0.7, env="DEFAULT_TEMPERATURE")
+    default_max_tokens: int = Field(default=1024, env="DEFAULT_MAX_TOKENS")
     chunk_size: int = Field(default=500, env="CHUNK_SIZE")
     chunk_overlap: int = Field(default=50, env="CHUNK_OVERLAP")
-    max_tokens: int = Field(default=2048, env="MAX_TOKENS")
-    temperature: float = Field(default=0.7, env="TEMPERATURE")
     
-    @validator("ollama_port")
-    def validate_port(cls, v):
-        if not 1 <= v <= 65535:
-            raise ValueError("Ollama port must be between 1 and 65535")
-        return v
+    # Additional LlamaCpp specific settings
+    n_gpu_layers: int = Field(default=-1, env="N_GPU_LAYERS")
+    n_batch: int = Field(default=512, env="N_BATCH")
+    n_ctx: int = Field(default=4096, env="N_CTX")
+    use_mmap: bool = Field(default=True, env="USE_MMAP")
+    use_mlock: bool = Field(default=False, env="USE_MLOCK")
+    top_p: float = Field(default=0.9, env="TOP_P")
+    top_k: int = Field(default=40, env="TOP_K")
+    repeat_penalty: float = Field(default=1.1, env="REPEAT_PENALTY")
+    
+    @validator("models_path")
+    def validate_models_path(cls, v):
+        if not v or len(v.strip()) == 0:
+            raise ValueError("Models path cannot be empty")
+        return v.strip()
+    
+    @validator("vectorstore_path")
+    def validate_vectorstore_path(cls, v):
+        if not v or len(v.strip()) == 0:
+            raise ValueError("Vectorstore path cannot be empty")
+        return v.strip()
+    
+    @validator("embedding_model_name")
+    def validate_embedding_model_name(cls, v):
+        if not v or len(v.strip()) == 0:
+            raise ValueError("Embedding model name cannot be empty")
+        return v.strip()
     
     @validator("chunk_size")
     def validate_chunk_size(cls, v):
@@ -128,16 +151,71 @@ class AISettings(BaseSettings):
             raise ValueError("Chunk size must be between 100 and 2000")
         return v
     
-    @validator("temperature")
+    @validator("chunk_overlap")
+    def validate_chunk_overlap(cls, v):
+        if not 0 <= v <= 500:
+            raise ValueError("Chunk overlap must be between 0 and 500")
+        return v
+    
+    @validator("default_temperature")
     def validate_temperature(cls, v):
         if not 0.0 <= v <= 2.0:
             raise ValueError("Temperature must be between 0.0 and 2.0")
         return v
     
-    @property
-    def ollama_url(self) -> str:
-        """Generate Ollama URL."""
-        return f"http://{self.ollama_host}:{self.ollama_port}"
+    @validator("default_max_tokens")
+    def validate_max_tokens(cls, v):
+        if not 1 <= v <= 8192:
+            raise ValueError("Max tokens must be between 1 and 8192")
+        return v
+    
+    @validator("max_concurrent_models")
+    def validate_max_concurrent_models(cls, v):
+        if not 1 <= v <= 10:
+            raise ValueError("Max concurrent models must be between 1 and 10")
+        return v
+    
+    @validator("conversation_memory_size")
+    def validate_conversation_memory_size(cls, v):
+        if not 1 <= v <= 100:
+            raise ValueError("Conversation memory size must be between 1 and 100")
+        return v
+    
+    @validator("n_gpu_layers")
+    def validate_n_gpu_layers(cls, v):
+        if v < -1:
+            raise ValueError("GPU layers must be -1 (auto) or >= 0")
+        return v
+    
+    @validator("n_batch")
+    def validate_n_batch(cls, v):
+        if not 1 <= v <= 2048:
+            raise ValueError("Batch size must be between 1 and 2048")
+        return v
+    
+    @validator("n_ctx")
+    def validate_n_ctx(cls, v):
+        if not 512 <= v <= 32768:
+            raise ValueError("Context size must be between 512 and 32768")
+        return v
+    
+    @validator("top_p")
+    def validate_top_p(cls, v):
+        if not 0.0 <= v <= 1.0:
+            raise ValueError("Top-p must be between 0.0 and 1.0")
+        return v
+    
+    @validator("top_k")
+    def validate_top_k(cls, v):
+        if not 1 <= v <= 200:
+            raise ValueError("Top-k must be between 1 and 200")
+        return v
+    
+    @validator("repeat_penalty")
+    def validate_repeat_penalty(cls, v):
+        if not 0.5 <= v <= 2.0:
+            raise ValueError("Repeat penalty must be between 0.5 and 2.0")
+        return v
 
 
 class LogSettings(BaseSettings):
@@ -179,7 +257,7 @@ class AppSettings(BaseSettings):
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     redis: RedisSettings = Field(default_factory=RedisSettings)
     security: SecuritySettings = Field(default_factory=SecuritySettings)
-    ai: AISettings = Field(default_factory=AISettings)
+    embedded_ai: EmbeddedAISettings = Field(default_factory=EmbeddedAISettings)
     logs: LogSettings = Field(default_factory=LogSettings)
     
     @validator("port")

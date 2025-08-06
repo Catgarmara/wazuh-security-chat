@@ -2,7 +2,8 @@
 AI Service Management API endpoints.
 
 This module provides REST API endpoints for AI service management,
-vector store operations, and LLM configuration.
+vector store operations, LLM configuration, model management, and inference.
+Consolidates all AI functionality into a single API interface.
 """
 
 import logging
@@ -11,24 +12,50 @@ from typing import Dict, Any, List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from core.database import get_db
 from core.permissions import get_current_active_user, admin_required
-from services.ai_service import AIService
+from services.embedded_ai_service import EmbeddedAIService
 from services.log_service import LogService
 from models.database import User
 from models.schemas import DateRange
 
 logger = logging.getLogger(__name__)
 
+# Pydantic models for request/response
+class ModelConfigUpdate(BaseModel):
+    context_length: Optional[int] = None
+    n_gpu_layers: Optional[int] = None
+    temperature: Optional[float] = None
+    top_p: Optional[float] = None
+    top_k: Optional[int] = None
+    max_tokens: Optional[int] = None
+
+class InferenceRequest(BaseModel):
+    query: str
+    model_id: Optional[str] = None
+    session_id: str = "default"
+    max_tokens: Optional[int] = None
+    temperature: Optional[float] = None
+    top_p: Optional[float] = None
+
+class ModelRegistration(BaseModel):
+    model_id: str
+    model_path: str
+    model_name: str
+    context_length: Optional[int] = 4096
+    n_gpu_layers: Optional[int] = -1
+    temperature: Optional[float] = 0.7
+
 # Create router
 router = APIRouter(prefix="/ai", tags=["AI Service Management"])
 
 
-def get_ai_service() -> AIService:
-    """Get AI service instance."""
-    return AIService()
+def get_ai_service() -> EmbeddedAIService:
+    """Get Embedded AI service instance."""
+    return EmbeddedAIService()
 
 
 def get_log_service() -> LogService:
@@ -52,6 +79,9 @@ async def ai_health_check(
     try:
         ai_service = get_ai_service()
         
+        # Get comprehensive service status
+        status_data = ai_service.get_service_status()
+        
         # Check LLM health
         llm_health = ai_service.check_llm_health()
         
@@ -62,13 +92,14 @@ async def ai_health_check(
         config = ai_service.get_llm_config()
         
         return {
-            "status": "healthy" if ai_service.is_ready() else "unhealthy",
+            "status": "healthy" if status_data["service_ready"] else "unhealthy",
             "service": "ai_management",
             "timestamp": datetime.now().isoformat(),
             "llm_health": llm_health,
             "vectorstore_info": vectorstore_info,
             "configuration": config,
-            "ready": ai_service.is_ready()
+            "ready": ai_service.is_ready(),
+            **status_data
         }
         
     except Exception as e:
@@ -557,4 +588,370 @@ async def similarity_search(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to perform similarity search: {str(e)}"
+        )
+
+
+# ============================================================================
+# Model Management Endpoints (formerly from embedded_ai.py)
+# ============================================================================
+
+@router.get("/system/stats")
+async def get_system_stats(
+    current_user: User = Depends(get_current_active_user)
+) -> Dict[str, Any]:
+    """Get real-time system resource statistics."""
+    try:
+        ai_service = get_ai_service()
+        system_stats = ai_service.get_system_stats()
+        
+        return {
+            "cpu_percent": system_stats.cpu_percent,
+            "memory": {
+                "used_gb": round(system_stats.memory_used / (1024**3), 2),
+                "total_gb": round(system_stats.memory_total / (1024**3), 2),
+                "usage_percent": round((system_stats.memory_used / system_stats.memory_total) * 100, 1)
+            },
+            "gpu_stats": system_stats.gpu_stats,
+            "disk_usage": system_stats.disk_usage,
+            "timestamp": system_stats.timestamp.isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting system stats: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get system statistics"
+        )
+
+
+@router.post("/models/register")
+async def register_model(
+    model_data: ModelRegistration,
+    current_user: User = Depends(admin_required)
+) -> Dict[str, Any]:
+    """Register a new model with the service (Admin only)."""
+    try:
+        ai_service = get_ai_service()
+        
+        success = ai_service.register_model(
+            model_id=model_data.model_id,
+            model_path=model_data.model_path,
+            model_name=model_data.model_name,
+            context_length=model_data.context_length,
+            n_gpu_layers=model_data.n_gpu_layers,
+            temperature=model_data.temperature
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to register model"
+            )
+        
+        return {
+            "message": "Model registered successfully",
+            "model_id": model_data.model_id,
+            "model_name": model_data.model_name,
+            "registered_by": current_user.username,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error registering model: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to register model: {str(e)}"
+        )
+
+
+@router.post("/models/{model_id}/load")
+async def load_model(
+    model_id: str,
+    force: bool = Query(False, description="Force load even if at capacity"),
+    current_user: User = Depends(admin_required)
+) -> Dict[str, Any]:
+    """Load a model into memory (Admin only)."""
+    try:
+        ai_service = get_ai_service()
+        
+        success = ai_service.load_model(model_id, force=force)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to load model {model_id}"
+            )
+        
+        return {
+            "message": f"Model loaded successfully",
+            "model_id": model_id,
+            "loaded_by": current_user.username,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error loading model {model_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load model: {str(e)}"
+        )
+
+
+@router.post("/models/{model_id}/unload")
+async def unload_model(
+    model_id: str,
+    current_user: User = Depends(admin_required)
+) -> Dict[str, Any]:
+    """Unload a model from memory (Admin only)."""
+    try:
+        ai_service = get_ai_service()
+        
+        success = ai_service.unload_model(model_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to unload model {model_id}"
+            )
+        
+        return {
+            "message": f"Model unloaded successfully",
+            "model_id": model_id,
+            "unloaded_by": current_user.username,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error unloading model {model_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to unload model: {str(e)}"
+        )
+
+
+@router.post("/models/hot-swap")
+async def hot_swap_models(
+    from_model_id: str = Query(..., description="Current model ID"),
+    to_model_id: str = Query(..., description="Target model ID"),
+    current_user: User = Depends(admin_required)
+) -> Dict[str, Any]:
+    """Hot swap between models (Admin only)."""
+    try:
+        ai_service = get_ai_service()
+        
+        success = ai_service.hot_swap_model(from_model_id, to_model_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to hot swap from {from_model_id} to {to_model_id}"
+            )
+        
+        return {
+            "message": "Hot swap completed successfully",
+            "from_model_id": from_model_id,
+            "to_model_id": to_model_id,
+            "swapped_by": current_user.username,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error hot swapping models: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to hot swap models: {str(e)}"
+        )
+
+
+@router.get("/models/loaded")
+async def get_loaded_models(
+    current_user: User = Depends(get_current_active_user)
+) -> Dict[str, Any]:
+    """Get currently loaded models."""
+    try:
+        ai_service = get_ai_service()
+        loaded_models = ai_service.get_loaded_models()
+        
+        return {
+            "loaded_models": loaded_models,
+            "total_loaded": len(loaded_models),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting loaded models: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get loaded models"
+        )
+
+
+@router.get("/models/available")
+async def get_available_models(
+    current_user: User = Depends(get_current_active_user)
+) -> Dict[str, Any]:
+    """Get all available models."""
+    try:
+        ai_service = get_ai_service()
+        available_models = ai_service.get_available_models()
+        
+        return {
+            "available_models": available_models,
+            "total_available": len(available_models),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting available models: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get available models"
+        )
+
+
+@router.put("/models/{model_id}/config")
+async def update_model_config(
+    model_id: str,
+    config_update: ModelConfigUpdate,
+    current_user: User = Depends(admin_required)
+) -> Dict[str, Any]:
+    """Update model configuration (Admin only)."""
+    try:
+        ai_service = get_ai_service()
+        
+        # Filter out None values
+        config_dict = {k: v for k, v in config_update.dict().items() if v is not None}
+        
+        success = ai_service.update_model_config(model_id, **config_dict)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Model {model_id} not found"
+            )
+        
+        return {
+            "message": "Model configuration updated successfully",
+            "model_id": model_id,
+            "updated_config": config_dict,
+            "updated_by": current_user.username,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating model config: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update model configuration: {str(e)}"
+        )
+
+
+@router.post("/inference")
+async def generate_inference(
+    request: InferenceRequest,
+    current_user: User = Depends(get_current_active_user)
+) -> Dict[str, Any]:
+    """Generate AI inference response."""
+    try:
+        ai_service = get_ai_service()
+        
+        # Prepare generation parameters
+        gen_kwargs = {}
+        if request.max_tokens is not None:
+            gen_kwargs['max_tokens'] = request.max_tokens
+        if request.temperature is not None:
+            gen_kwargs['temperature'] = request.temperature
+        if request.top_p is not None:
+            gen_kwargs['top_p'] = request.top_p
+        
+        # Generate response
+        response = ai_service.generate_response(
+            query=request.query,
+            model_id=request.model_id,
+            session_id=request.session_id,
+            **gen_kwargs
+        )
+        
+        return {
+            "response": response,
+            "model_id": request.model_id or ai_service.active_model,
+            "session_id": request.session_id,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating inference: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate inference: {str(e)}"
+        )
+
+
+@router.get("/conversations/{session_id}/history")
+async def get_conversation_history(
+    session_id: str,
+    current_user: User = Depends(get_current_active_user)
+) -> Dict[str, Any]:
+    """Get conversation history for a session."""
+    try:
+        ai_service = get_ai_service()
+        history = ai_service.get_conversation_history(session_id)
+        
+        # Convert to serializable format
+        history_data = []
+        for message in history:
+            if hasattr(message, 'content'):
+                history_data.append({
+                    'type': message.__class__.__name__,
+                    'content': message.content,
+                    'timestamp': datetime.now().isoformat()
+                })
+        
+        return {
+            "session_id": session_id,
+            "history": history_data,
+            "message_count": len(history_data),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting conversation history: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get conversation history"
+        )
+
+
+@router.delete("/conversations/{session_id}")
+async def clear_conversation(
+    session_id: str,
+    current_user: User = Depends(get_current_active_user)
+) -> Dict[str, Any]:
+    """Clear conversation history for a session."""
+    try:
+        ai_service = get_ai_service()
+        ai_service.clear_conversation_history(session_id)
+        
+        return {
+            "message": "Conversation history cleared",
+            "session_id": session_id,
+            "cleared_by": current_user.username,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error clearing conversation: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to clear conversation history"
         )

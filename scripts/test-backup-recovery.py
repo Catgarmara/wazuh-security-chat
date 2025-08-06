@@ -1,10 +1,24 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backup and Recovery Test Script
+Comprehensive Backup and Recovery Test Script - DEPRECATED
+
+IMPORTANT: This script is deprecated as it tests the old AIService which used Ollama.
+The AIService has been replaced with EmbeddedAIService using LlamaCpp.
+This script needs to be rewritten to work with the new embedded AI architecture.
 
 This script performs end-to-end testing of the backup and recovery system
 to ensure data integrity and disaster recovery capabilities.
 """
+
+# DEPRECATED: This entire script is commented out as it depends on the deprecated AIService
+# The script needs to be rewritten to work with EmbeddedAIService
+
+import sys
+print("ERROR: This test script is deprecated and cannot run with the current embedded AI architecture.")
+print("The script needs to be updated to work with EmbeddedAIService instead of the deprecated AIService.")
+sys.exit(1)
+
+# All code below is commented out until the script is updated for EmbeddedAIService
 
 import argparse
 import json
