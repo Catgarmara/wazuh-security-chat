@@ -1,5 +1,6 @@
-# Wazuh AI Companion - Deployment Configuration
-# This file defines deployment settings for different environments
+# AI-Enhanced Security Query Interface - Deployment Configuration
+# This file defines deployment settings for the self-contained security appliance
+# with embedded AI processing and no external dependencies
 
 environments:
   development:
@@ -7,7 +8,7 @@ environments:
     profiles: ["monitoring"]
     health_check_timeout: 120
     required_services: ["app", "postgres", "redis"]
-    optional_services: ["ollama", "prometheus", "grafana", "alertmanager"]
+    optional_services: ["prometheus", "grafana", "alertmanager"]
     resource_limits:
       app:
         cpu: "1.0"
@@ -24,7 +25,7 @@ environments:
     profiles: ["monitoring"]
     health_check_timeout: 180
     required_services: ["app", "postgres", "redis", "nginx"]
-    optional_services: ["ollama", "prometheus", "grafana", "alertmanager"]
+    optional_services: ["prometheus", "grafana", "alertmanager"]
     resource_limits:
       app:
         cpu: "1.5"
@@ -44,7 +45,7 @@ environments:
     profiles: []
     health_check_timeout: 300
     required_services: ["app", "postgres", "redis", "nginx"]
-    optional_services: ["ollama"]
+    optional_services: []
     resource_limits:
       app:
         cpu: "2.0"
@@ -58,9 +59,6 @@ environments:
       nginx:
         cpu: "0.5"
         memory: "256M"
-      ollama:
-        cpu: "4.0"
-        memory: "8G"
 
 # Health check endpoints for different services
 health_checks:
@@ -75,24 +73,24 @@ health_checks:
   redis_exporter: "http://localhost:9121/metrics"
   cadvisor: "http://localhost:8080/metrics"
 
-# Kubernetes configuration
+# Kubernetes configuration for embedded AI appliance
 kubernetes:
-  namespace: "wazuh-ai-companion"
+  namespace: "security-ai-appliance"
   ingress:
     enabled: true
-    host: "wazuh-ai.example.com"
+    host: "security-ai.example.com"
     tls_enabled: true
   storage:
-    postgres_size: "10Gi"
-    redis_size: "5Gi"
-    ollama_size: "50Gi"
-    prometheus_size: "20Gi"
-    grafana_size: "5Gi"
+    postgres_size: "20Gi"
+    redis_size: "10Gi"
+    embedded_models_size: "200Gi"  # Large storage for local AI models
+    vectorstore_data_size: "100Gi"  # Increased for embedded processing
+    prometheus_size: "30Gi"
+    grafana_size: "10Gi"
   replicas:
-    app: 3
+    app: 2  # Optimized for embedded processing
     postgres: 1
     redis: 1
-    ollama: 1
 
 # Monitoring configuration
 monitoring:
@@ -109,30 +107,39 @@ monitoring:
     group_interval: "10s"
     repeat_interval: "1h"
 
-# Security configuration
+# Security configuration for embedded appliance
 security:
   enable_https: true
   ssl_cert_path: "./nginx/ssl/cert.pem"
   ssl_key_path: "./nginx/ssl/key.pem"
   cors_origins:
     - "http://localhost:3000"
-    - "https://wazuh-ai.example.com"
+    - "https://security-ai.example.com"
   rate_limiting:
     enabled: true
     requests_per_minute: 60
+  embedded_ai_security:
+    model_validation: true
+    input_sanitization: true
+    output_filtering: true
 
-# Backup configuration
+# Backup configuration for embedded appliance
 backup:
   enabled: true
   schedule: "0 2 * * *"  # Daily at 2 AM
   retention_days: 30
-  s3_bucket: "wazuh-ai-backups"
+  s3_bucket: "security-ai-appliance-backups"
   databases:
     - postgres
   volumes:
-    - ollama_data
+    - embedded_models  # Local AI models
+    - vectorstore_data
     - prometheus_data
     - grafana_data
+  embedded_ai:
+    backup_models: true
+    backup_model_configs: true
+    backup_huggingface_cache: true
 
 # Logging configuration
 logging:
@@ -142,16 +149,23 @@ logging:
   retention_days: 30
   max_file_size: "100MB"
 
-# Performance tuning
+# Performance tuning for embedded AI appliance
 performance:
   postgres:
-    max_connections: 100
-    shared_buffers: "256MB"
-    effective_cache_size: "1GB"
+    max_connections: 200
+    shared_buffers: "512MB"
+    effective_cache_size: "2GB"
   redis:
-    maxmemory: "512MB"
+    maxmemory: "1GB"
     maxmemory_policy: "allkeys-lru"
   app:
     workers: 4
     worker_connections: 1000
     keepalive_timeout: 65
+  embedded_ai:
+    max_concurrent_models: 3
+    model_memory_limit: "8GB"  # Increased for larger models
+    inference_timeout: 60      # Extended for complex queries
+    gpu_memory_fraction: 0.8   # If GPU available
+    model_cache_size: "16GB"   # Cache for model hot-swapping
+    vectorstore_cache_size: "4GB"  # Vector search optimization

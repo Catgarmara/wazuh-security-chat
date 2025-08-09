@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """
-Wazuh AI Companion - Comprehensive Backup Script
+AI-Enhanced Security Query Interface - Comprehensive Backup Script
 
-This script provides automated backup capabilities for:
+This script provides automated backup capabilities for the self-contained security appliance:
 - PostgreSQL database
 - Redis data
-- Vector store data
+- Embedded AI models and vector store data
 - Application configuration
 - Monitoring data
+
+This backup script is designed for the embedded AI appliance with no external dependencies.
 """
 
 import argparse
@@ -24,8 +26,8 @@ import yaml
 import logging
 
 
-class WazuhBackupManager:
-    """Comprehensive backup manager for Wazuh AI Companion."""
+class SecurityApplianceBackupManager:
+    """Comprehensive backup manager for AI-Enhanced Security Query Interface appliance."""
     
     def __init__(self, config_file: Optional[str] = None):
         self.project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -61,7 +63,7 @@ class WazuhBackupManager:
             with open(config_file, 'r') as f:
                 return yaml.safe_load(f)
         
-        # Default configuration
+        # Default configuration for self-contained security appliance
         return {
             'backup_directory': '/backups',
             'retention_days': 30,
@@ -77,14 +79,18 @@ class WazuhBackupManager:
                 }
             },
             'volumes': {
-                'redis_data': {'enabled': True},
-                'ollama_data': {'enabled': True},
-                'prometheus_data': {'enabled': True},
-                'grafana_data': {'enabled': True}
+                'redis_data': {'enabled': True, 'description': 'Redis cache data'},
+                'model_data': {'enabled': True, 'description': 'Embedded AI models'},
+                'vectorstore_data': {'enabled': True, 'description': 'Vector store and embeddings'},
+                'prometheus_data': {'enabled': True, 'description': 'Monitoring metrics'},
+                'grafana_data': {'enabled': True, 'description': 'Dashboard configurations'}
             },
-            'vector_store': {
+            'embedded_ai': {
                 'enabled': True,
-                'path': './data/vectorstore'
+                'models_path': './models',
+                'vectorstore_path': './data/vectorstore',
+                'backup_model_configs': True,
+                'backup_huggingface_cache': True
             },
             's3': {
                 'enabled': False,
@@ -195,37 +201,66 @@ class WazuhBackupManager:
             self.logger.error(f"Redis backup failed: {output}")
             return False
     
-    def backup_vector_store(self, timestamp: str) -> bool:
-        """Backup vector store data."""
-        self.logger.info("Starting vector store backup...")
+    def backup_embedded_ai_data(self, timestamp: str) -> bool:
+        """Backup embedded AI models and vector store data."""
+        self.logger.info("Starting embedded AI data backup...")
         
-        vector_config = self.backup_config['vector_store']
-        if not vector_config.get('enabled', True):
-            self.logger.info("Vector store backup disabled, skipping...")
+        ai_config = self.backup_config.get('embedded_ai', {})
+        if not ai_config.get('enabled', True):
+            self.logger.info("Embedded AI backup disabled, skipping...")
             return True
         
-        vector_path = vector_config.get('path', './data/vectorstore')
-        full_vector_path = os.path.join(self.project_root, vector_path)
+        success_count = 0
+        total_count = 0
         
-        if not os.path.exists(full_vector_path):
-            self.logger.warning(f"Vector store path does not exist: {full_vector_path}")
-            return True
+        # Backup models directory
+        models_path = ai_config.get('models_path', './models')
+        full_models_path = os.path.join(self.project_root, models_path)
         
-        backup_file = os.path.join(
-            self.backup_dir,
-            f"vectorstore_{timestamp}.tar.gz"
-        )
-        
-        try:
-            with tarfile.open(backup_file, 'w:gz') as tar:
-                tar.add(full_vector_path, arcname='vectorstore')
+        if os.path.exists(full_models_path):
+            total_count += 1
+            backup_file = os.path.join(
+                self.backup_dir,
+                f"embedded_ai_models_{timestamp}.tar.gz"
+            )
             
-            file_size = os.path.getsize(backup_file)
-            self.logger.info(f"Vector store backup completed: {backup_file} ({file_size} bytes)")
-            return True
-        except Exception as e:
-            self.logger.error(f"Vector store backup failed: {e}")
-            return False
+            try:
+                with tarfile.open(backup_file, 'w:gz') as tar:
+                    tar.add(full_models_path, arcname='models')
+                
+                file_size = os.path.getsize(backup_file)
+                self.logger.info(f"AI models backup completed: {backup_file} ({file_size} bytes)")
+                success_count += 1
+            except Exception as e:
+                self.logger.error(f"AI models backup failed: {e}")
+        else:
+            self.logger.warning(f"Models path does not exist: {full_models_path}")
+        
+        # Backup vector store directory
+        vectorstore_path = ai_config.get('vectorstore_path', './data/vectorstore')
+        full_vectorstore_path = os.path.join(self.project_root, vectorstore_path)
+        
+        if os.path.exists(full_vectorstore_path):
+            total_count += 1
+            backup_file = os.path.join(
+                self.backup_dir,
+                f"vectorstore_{timestamp}.tar.gz"
+            )
+            
+            try:
+                with tarfile.open(backup_file, 'w:gz') as tar:
+                    tar.add(full_vectorstore_path, arcname='vectorstore')
+                
+                file_size = os.path.getsize(backup_file)
+                self.logger.info(f"Vector store backup completed: {backup_file} ({file_size} bytes)")
+                success_count += 1
+            except Exception as e:
+                self.logger.error(f"Vector store backup failed: {e}")
+        else:
+            self.logger.warning(f"Vector store path does not exist: {full_vectorstore_path}")
+        
+        self.logger.info(f"Embedded AI data backup completed: {success_count}/{total_count} successful")
+        return success_count == total_count or total_count == 0
     
     def backup_docker_volumes(self, timestamp: str) -> bool:
         """Backup Docker volumes."""
@@ -346,7 +381,7 @@ class WazuhBackupManager:
                     continue
                 
                 file_name = os.path.basename(backup_file)
-                s3_key = f"wazuh-ai-companion/{datetime.now().strftime('%Y/%m/%d')}/{file_name}"
+                s3_key = f"security-appliance/{datetime.now().strftime('%Y/%m/%d')}/{file_name}"
                 
                 try:
                     s3_client.upload_file(backup_file, bucket, s3_key)
@@ -442,7 +477,7 @@ class WazuhBackupManager:
         backup_tasks = [
             ("PostgreSQL Database", self.backup_postgres),
             ("Redis Data", self.backup_redis),
-            ("Vector Store", self.backup_vector_store),
+            ("Embedded AI Data", self.backup_embedded_ai_data),
             ("Docker Volumes", self.backup_docker_volumes),
             ("Configuration", self.backup_configuration)
         ]
@@ -487,7 +522,7 @@ class WazuhBackupManager:
 
 def main():
     """Main backup script entry point."""
-    parser = argparse.ArgumentParser(description="Wazuh AI Companion Backup Script")
+    parser = argparse.ArgumentParser(description="AI-Enhanced Security Query Interface Backup Script")
     parser.add_argument(
         "--config", "-c",
         help="Path to backup configuration file"
@@ -510,7 +545,7 @@ def main():
     args = parser.parse_args()
     
     # Create backup manager
-    backup_manager = WazuhBackupManager(config_file=args.config)
+    backup_manager = SecurityApplianceBackupManager(config_file=args.config)
     
     # Override configuration with command line arguments
     if args.backup_dir:

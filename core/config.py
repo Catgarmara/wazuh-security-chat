@@ -105,8 +105,9 @@ class SecuritySettings(BaseSettings):
 
 
 class EmbeddedAISettings(BaseSettings):
-    """Embedded AI configuration settings for LlamaCpp integration."""
+    """Embedded AI configuration settings for security appliance with LlamaCpp integration."""
     
+    # Core paths and model management
     models_path: str = Field(default="./models", env="MODELS_PATH")
     vectorstore_path: str = Field(default="./data/vectorstore", env="VECTORSTORE_PATH")
     embedding_model_name: str = Field(default="all-MiniLM-L6-v2", env="EMBEDDING_MODEL")
@@ -117,7 +118,23 @@ class EmbeddedAISettings(BaseSettings):
     chunk_size: int = Field(default=500, env="CHUNK_SIZE")
     chunk_overlap: int = Field(default=50, env="CHUNK_OVERLAP")
     
-    # Additional LlamaCpp specific settings
+    # Security appliance specific settings
+    enable_model_auto_download: bool = Field(default=True, env="ENABLE_MODEL_AUTO_DOWNLOAD")
+    default_security_model: str = Field(default="mistral-7b-instruct-v0.1.Q4_K_M.gguf", env="DEFAULT_SECURITY_MODEL")
+    ai_model_cache_size_gb: int = Field(default=8, env="MODEL_CACHE_SIZE_GB")  # Fixed: renamed and adjusted default
+    enable_gpu_acceleration: bool = Field(default=True, env="ENABLE_GPU_ACCELERATION")
+    max_memory_usage_gb: int = Field(default=8, env="MAX_MEMORY_USAGE_GB")
+    ai_model_load_timeout_seconds: int = Field(default=300, env="MODEL_LOAD_TIMEOUT_SECONDS")  # Fixed: renamed
+    enable_model_quantization: bool = Field(default=True, env="ENABLE_MODEL_QUANTIZATION")
+    
+    # Resource management and monitoring
+    resource_monitoring_interval: int = Field(default=30, env="RESOURCE_MONITORING_INTERVAL")
+    auto_unload_inactive_models: bool = Field(default=True, env="AUTO_UNLOAD_INACTIVE_MODELS")
+    ai_model_inactivity_timeout_minutes: int = Field(default=30, env="MODEL_INACTIVITY_TIMEOUT_MINUTES")  # Fixed: renamed
+    enable_health_checks: bool = Field(default=True, env="ENABLE_HEALTH_CHECKS")
+    health_check_interval_seconds: int = Field(default=60, env="HEALTH_CHECK_INTERVAL_SECONDS")
+    
+    # LlamaCpp specific settings
     n_gpu_layers: int = Field(default=-1, env="N_GPU_LAYERS")
     n_batch: int = Field(default=512, env="N_BATCH")
     n_ctx: int = Field(default=4096, env="N_CTX")
@@ -126,6 +143,15 @@ class EmbeddedAISettings(BaseSettings):
     top_p: float = Field(default=0.9, env="TOP_P")
     top_k: int = Field(default=40, env="TOP_K")
     repeat_penalty: float = Field(default=1.1, env="REPEAT_PENALTY")
+    
+    # Security and compliance settings
+    enable_audit_logging: bool = Field(default=True, env="ENABLE_AUDIT_LOGGING")
+    log_model_interactions: bool = Field(default=True, env="LOG_MODEL_INTERACTIONS")
+    enable_conversation_encryption: bool = Field(default=False, env="ENABLE_CONVERSATION_ENCRYPTION")
+    max_conversation_history_days: int = Field(default=30, env="MAX_CONVERSATION_HISTORY_DAYS")
+    
+    class Config:
+        protected_namespaces = ('settings_',)  # Fix pydantic warnings
     
     @validator("models_path")
     def validate_models_path(cls, v):
@@ -143,6 +169,14 @@ class EmbeddedAISettings(BaseSettings):
     def validate_embedding_model_name(cls, v):
         if not v or len(v.strip()) == 0:
             raise ValueError("Embedding model name cannot be empty")
+        return v.strip()
+    
+    @validator("default_security_model")
+    def validate_default_security_model(cls, v):
+        if not v or len(v.strip()) == 0:
+            raise ValueError("Default security model cannot be empty")
+        if not v.endswith('.gguf'):
+            raise ValueError("Default security model must be a GGUF file (.gguf extension)")
         return v.strip()
     
     @validator("chunk_size")
@@ -181,6 +215,48 @@ class EmbeddedAISettings(BaseSettings):
             raise ValueError("Conversation memory size must be between 1 and 100")
         return v
     
+    @validator("ai_model_cache_size_gb")
+    def validate_ai_model_cache_size_gb(cls, v):
+        if not 1 <= v <= 100:
+            raise ValueError("AI model cache size must be between 1 and 100 GB")
+        return v
+    
+    @validator("max_memory_usage_gb")
+    def validate_max_memory_usage_gb(cls, v):
+        if not 1 <= v <= 64:
+            raise ValueError("Max memory usage must be between 1 and 64 GB")
+        return v
+    
+    @validator("ai_model_load_timeout_seconds")
+    def validate_ai_model_load_timeout_seconds(cls, v):
+        if not 30 <= v <= 1800:  # 30 seconds to 30 minutes
+            raise ValueError("AI model load timeout must be between 30 and 1800 seconds")
+        return v
+    
+    @validator("resource_monitoring_interval")
+    def validate_resource_monitoring_interval(cls, v):
+        if not 10 <= v <= 300:  # 10 seconds to 5 minutes
+            raise ValueError("Resource monitoring interval must be between 10 and 300 seconds")
+        return v
+    
+    @validator("ai_model_inactivity_timeout_minutes")
+    def validate_ai_model_inactivity_timeout_minutes(cls, v):
+        if not 5 <= v <= 1440:  # 5 minutes to 24 hours
+            raise ValueError("AI model inactivity timeout must be between 5 and 1440 minutes")
+        return v
+    
+    @validator("health_check_interval_seconds")
+    def validate_health_check_interval_seconds(cls, v):
+        if not 30 <= v <= 600:  # 30 seconds to 10 minutes
+            raise ValueError("Health check interval must be between 30 and 600 seconds")
+        return v
+    
+    @validator("max_conversation_history_days")
+    def validate_max_conversation_history_days(cls, v):
+        if not 1 <= v <= 365:
+            raise ValueError("Max conversation history days must be between 1 and 365")
+        return v
+    
     @validator("n_gpu_layers")
     def validate_n_gpu_layers(cls, v):
         if v < -1:
@@ -216,6 +292,67 @@ class EmbeddedAISettings(BaseSettings):
         if not 0.5 <= v <= 2.0:
             raise ValueError("Repeat penalty must be between 0.5 and 2.0")
         return v
+    
+    def validate_appliance_deployment(self) -> bool:
+        """
+        Validate security appliance deployment settings for consistency and readiness.
+        
+        Returns:
+            bool: True if all settings are valid for deployment
+            
+        Raises:
+            ValueError: If any deployment settings are invalid or inconsistent
+        """
+        # Validate memory constraints
+        if self.max_memory_usage_gb < 2:
+            raise ValueError("Security appliance requires at least 2GB memory allocation")
+        
+        # Validate model cache vs memory usage
+        if self.ai_model_cache_size_gb > self.max_memory_usage_gb:
+            raise ValueError("AI model cache size cannot exceed max memory usage")
+        
+        # Validate concurrent models vs memory
+        estimated_memory_per_model = 2  # GB estimate for typical security models
+        if (self.max_concurrent_models * estimated_memory_per_model) > self.max_memory_usage_gb:
+            raise ValueError(
+                f"Max concurrent models ({self.max_concurrent_models}) may exceed "
+                f"memory limit ({self.max_memory_usage_gb}GB). Consider reducing concurrent models."
+            )
+        
+        # Validate context size vs batch size
+        if self.n_batch > self.n_ctx:
+            raise ValueError("Batch size cannot exceed context size")
+        
+        # Validate chunk overlap vs chunk size
+        if self.chunk_overlap >= self.chunk_size:
+            raise ValueError("Chunk overlap must be less than chunk size")
+        
+        # Validate timeout settings
+        if self.ai_model_inactivity_timeout_minutes < 5:
+            raise ValueError("AI model inactivity timeout should be at least 5 minutes for stability")
+        
+        return True
+    
+    def get_deployment_summary(self) -> dict:
+        """
+        Get a summary of key deployment settings for security appliance.
+        
+        Returns:
+            dict: Summary of deployment configuration
+        """
+        return {
+            "models_path": self.models_path,
+            "max_memory_gb": self.max_memory_usage_gb,
+            "max_concurrent_models": self.max_concurrent_models,
+            "gpu_acceleration": self.enable_gpu_acceleration,
+            "gpu_layers": self.n_gpu_layers if self.enable_gpu_acceleration else 0,
+            "context_size": self.n_ctx,
+            "default_model": self.default_security_model,
+            "auto_download": self.enable_model_auto_download,
+            "health_checks": self.enable_health_checks,
+            "audit_logging": self.enable_audit_logging,
+            "resource_monitoring": self.resource_monitoring_interval
+        }
 
 
 class LogSettings(BaseSettings):
@@ -272,6 +409,56 @@ class AppSettings(BaseSettings):
             return [origin.strip() for origin in v.split(",")]
         return v
     
+    def validate_security_appliance_config(self) -> bool:
+        """
+        Validate the complete security appliance configuration.
+        
+        Returns:
+            bool: True if configuration is valid for security appliance deployment
+            
+        Raises:
+            ValueError: If any configuration is invalid for security appliance
+        """
+        # Validate embedded AI settings
+        if not self.embedded_ai.validate_appliance_deployment():
+            return False
+        
+        # Ensure required security settings are present
+        if not self.security.secret_key or len(self.security.secret_key) < 32:
+            raise ValueError("Security appliance requires a strong secret key (minimum 32 characters)")
+        
+        # Validate database configuration for appliance
+        if not self.database.host or not self.database.name:
+            raise ValueError("Security appliance requires valid database configuration")
+        
+        # Validate Redis configuration for session management
+        if not self.redis.host:
+            raise ValueError("Security appliance requires Redis for session management")
+        
+        # Ensure audit logging is enabled for security appliance
+        if not self.embedded_ai.enable_audit_logging:
+            raise ValueError("Security appliance must have audit logging enabled")
+        
+        return True
+    
+    def get_appliance_status(self) -> dict:
+        """
+        Get security appliance configuration status.
+        
+        Returns:
+            dict: Appliance configuration status and summary
+        """
+        return {
+            "app_name": self.app_name,
+            "version": self.version,
+            "environment": self.environment.value,
+            "embedded_ai": self.embedded_ai.get_deployment_summary(),
+            "security_enabled": bool(self.security.secret_key),
+            "database_configured": bool(self.database.host and self.database.name),
+            "redis_configured": bool(self.redis.host),
+            "debug_mode": self.debug
+        }
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
@@ -283,14 +470,21 @@ _settings = None
 
 
 def get_settings() -> AppSettings:
-    """Get application settings instance."""
+    """Get application settings instance with security appliance validation."""
     global _settings
     if _settings is None:
         try:
             _settings = AppSettings()
-        except Exception:
+            # Validate security appliance configuration in production
+            if _settings.environment == Environment.PRODUCTION:
+                _settings.validate_security_appliance_config()
+        except Exception as e:
             # For testing purposes, create settings with minimal required fields
             import os
             os.environ.setdefault("SECRET_KEY", "test_secret_key_for_development_only_32_chars_minimum")
-            _settings = AppSettings()
+            try:
+                _settings = AppSettings()
+            except Exception:
+                # If still failing, it's a configuration issue
+                raise ValueError(f"Security appliance configuration error: {e}")
     return _settings

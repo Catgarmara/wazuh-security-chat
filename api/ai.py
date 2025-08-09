@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from core.database import get_db
 from core.permissions import get_current_active_user, admin_required
-from services.embedded_ai_service import EmbeddedAIService
+from core.ai_factory import AIServiceFactory
 from services.log_service import LogService
 from models.database import User
 from models.schemas import DateRange
@@ -53,9 +53,9 @@ class ModelRegistration(BaseModel):
 router = APIRouter(prefix="/ai", tags=["AI Service Management"])
 
 
-def get_ai_service() -> EmbeddedAIService:
-    """Get Embedded AI service instance."""
-    return EmbeddedAIService()
+def get_ai_service():
+    """Get Embedded AI service instance using AIServiceFactory."""
+    return AIServiceFactory.get_ai_service()
 
 
 def get_log_service() -> LogService:

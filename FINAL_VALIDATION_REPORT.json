@@ -1,0 +1,202 @@
+{
+  "final_validation_summary": {
+    "overall_status": "FAIL",
+    "timestamp": "2025-08-08 10:44:49",
+    "validation_phases": {
+      "static_validation": "FAIL",
+      "startup_test": "NOT_RUN",
+      "integration_test": "NOT_RUN"
+    }
+  },
+  "requirements_compliance": {
+    "individual_requirements": {
+      "1.1_appliance_startup": "NOT_ASSESSED",
+      "1.4_embedded_ai_sole_provider": "COMPLIANT",
+      "2.1_natural_language_queries": "NOT_ASSESSED",
+      "2.2_websocket_integration": "NOT_ASSESSED",
+      "2.3_security_log_analysis": "NOT_ASSESSED",
+      "5.1_siem_query_translation": "NOT_ASSESSED",
+      "5.2_threat_hunting": "NOT_ASSESSED",
+      "5.3_security_analysis": "NOT_ASSESSED",
+      "5.4_mitre_attack_mapping": "NOT_ASSESSED",
+      "5.5_executive_summaries": "NOT_ASSESSED",
+      "5.6_compliance_reporting": "NOT_ASSESSED",
+      "7.6_self_containment": "NOT_ASSESSED"
+    },
+    "compliance_summary": {
+      "total_requirements": 12,
+      "compliant": 1,
+      "compliance_percentage": "8.3%"
+    }
+  },
+  "detailed_phase_results": {
+    "static_validation": {
+      "validation_summary": {
+        "overall_status": "FAIL",
+        "total_validations": 10,
+        "passed": 4,
+        "failed": 6,
+        "errors": 0,
+        "success_rate": "40.0%"
+      },
+      "critical_validations_status": {
+        "validate_service_factory_integration": "PASS",
+        "validate_external_dependencies_removed": "FAIL",
+        "validate_embedded_ai_service": "FAIL",
+        "validate_requirements_file": "FAIL"
+      },
+      "detailed_results": {
+        "validate_service_factory_integration": {
+          "status": "PASS",
+          "details": {
+            "success": true,
+            "factory_exists": true,
+            "returns_embedded_service": true,
+            "proper_imports": true
+          }
+        },
+        "validate_external_dependencies_removed": {
+          "status": "FAIL",
+          "details": {
+            "success": false,
+            "no_external_services": true,
+            "no_external_imports": false,
+            "clean_config": true,
+            "external_services_found": [],
+            "external_imports_found": [
+              "services/__init__.py: ai_service",
+              "services/__init__.py: AIService"
+            ],
+            "error": "'charmap' codec can't decode byte 0x8d in position 1416: character maps to <undefined>"
+          }
+        },
+        "validate_configuration_cleanup": {
+          "status": "PASS",
+          "details": {
+            "success": true,
+            "embedded_ai_settings_present": true,
+            "no_external_settings": true,
+            "app_settings_updated": true
+          }
+        },
+        "validate_docker_configuration": {
+          "status": "FAIL",
+          "details": {
+            "success": false,
+            "dockerfile_has_llama_cpp": true,
+            "compose_self_contained": false,
+            "prod_compose_clean": true,
+            "external_services_in_compose": [
+              "docker-compose.yml: ollama"
+            ]
+          }
+        },
+        "validate_api_consolidation": {
+          "status": "PASS",
+          "details": {
+            "success": true,
+            "main_ai_api_exists": true,
+            "no_separate_embedded_api": true,
+            "consolidated_endpoints": true
+          }
+        },
+        "validate_service_imports": {
+          "status": "FAIL",
+          "details": {
+            "success": false,
+            "services_init_updated": true,
+            "chat_service_updated": false,
+            "websocket_updated": false,
+            "error": "'charmap' codec can't decode byte 0x9d in position 28450: character maps to <undefined>"
+          }
+        },
+        "validate_embedded_ai_service": {
+          "status": "FAIL",
+          "details": {
+            "success": false,
+            "service_exists": true,
+            "has_required_methods": false,
+            "proper_imports": false,
+            "missing_methods": [],
+            "error": "'charmap' codec can't decode byte 0x8d in position 42981: character maps to <undefined>"
+          }
+        },
+        "validate_requirements_file": {
+          "status": "FAIL",
+          "details": {
+            "success": false,
+            "has_llama_cpp": true,
+            "has_transformers": true,
+            "no_external_ai_deps": false,
+            "external_deps_found": [
+              "ollama"
+            ]
+          }
+        },
+        "validate_backup_scripts": {
+          "status": "FAIL",
+          "details": {
+            "success": false,
+            "backup_script_clean": true,
+            "deploy_script_clean": true,
+            "external_references": [],
+            "error": "'charmap' codec can't decode byte 0x9d in position 19600: character maps to <undefined>"
+          }
+        },
+        "validate_health_checks": {
+          "status": "PASS",
+          "details": {
+            "success": true,
+            "health_module_exists": true,
+            "monitors_embedded_ai": true,
+            "no_external_monitoring": true
+          }
+        }
+      },
+      "errors": [],
+      "recommendations": [
+        "Remove all external AI service dependencies and references",
+        "Complete EmbeddedAIService implementation with all required methods",
+        "Update Docker configuration for self-contained deployment"
+      ],
+      "next_steps": [
+        "Fix failed validations before proceeding",
+        "Review detailed results for specific issues",
+        "Re-run static validation after fixes",
+        "Then proceed with runtime testing"
+      ]
+    },
+    "startup_test": {
+      "status": "SKIPPED",
+      "reason": "Static validation failed"
+    },
+    "integration_test": {
+      "status": "SKIPPED",
+      "reason": "Startup test failed"
+    }
+  },
+  "final_recommendations": [
+    "\u274c Critical validation failures detected",
+    "\ud83d\udd27 Address static validation issues first",
+    "\ud83d\udd27 Ensure application starts correctly",
+    "\ud83d\udd27 Fix embedded AI service integration",
+    "\ud83d\udccb Re-run validation after fixes"
+  ],
+  "deployment_readiness": {
+    "readiness_level": "NOT_READY",
+    "readiness_score": "0.0%",
+    "criteria_met": {
+      "static_validation_passed": false,
+      "application_starts": false,
+      "embedded_ai_functional": false,
+      "self_contained": false,
+      "basic_queries_work": false
+    },
+    "critical_blockers": [
+      "Static validation failures must be resolved",
+      "Application startup issues must be fixed",
+      "Embedded AI service must be functional",
+      "External dependencies must be removed for self-containment"
+    ]
+  }
+}

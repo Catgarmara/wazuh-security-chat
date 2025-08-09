@@ -101,15 +101,16 @@ deploy_redis() {
     echo -e "${GREEN}✅ Redis is ready${NC}"
 }
 
-# Function to deploy Ollama
-deploy_ollama() {
-    echo -e "${YELLOW}🤖 Deploying Ollama...${NC}"
-    kubectl apply -f ollama-deployment.yaml
+# Function to deploy persistent volumes for embedded AI
+deploy_embedded_ai_storage() {
+    echo -e "${YELLOW}💾 Deploying embedded AI storage...${NC}"
+    kubectl apply -f persistent-volumes.yaml
     
-    # Wait for Ollama to be ready (this may take a while due to model download)
-    echo -e "${YELLOW}⏳ Waiting for Ollama to be ready (this may take several minutes)...${NC}"
-    kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=ollama -n ${NAMESPACE} --timeout=600s
-    echo -e "${GREEN}✅ Ollama is ready${NC}"
+    # Wait for PVCs to be bound
+    echo -e "${YELLOW}⏳ Waiting for persistent volumes to be bound...${NC}"
+    kubectl wait --for=condition=bound pvc/model-data-pvc -n ${NAMESPACE} --timeout=60s
+    kubectl wait --for=condition=bound pvc/vectorstore-data-pvc -n ${NAMESPACE} --timeout=60s
+    echo -e "${GREEN}✅ Embedded AI storage is ready${NC}"
 }
 
 # Function to deploy main application
@@ -220,7 +221,7 @@ main() {
     deploy_storage
     deploy_database
     deploy_redis
-    deploy_ollama
+    deploy_embedded_ai_storage
     deploy_app
     deploy_nginx
     deploy_hpa

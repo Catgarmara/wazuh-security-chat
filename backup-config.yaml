@@ -1,5 +1,6 @@
-# Wazuh AI Companion - Backup Configuration
-# This file defines backup settings and schedules
+# AI-Enhanced Security Query Interface - Backup Configuration
+# This file defines backup settings for the self-contained security appliance
+# with embedded AI processing and no external dependencies
 
 # General backup settings
 backup_directory: "/backups"
@@ -18,33 +19,64 @@ databases:
     backup_format: "sql"  # sql, custom, tar
     compression: true
     
-# Docker volume backup configuration
+# Docker volume backup configuration for embedded appliance
 volumes:
   redis_data:
     enabled: true
     description: "Redis cache data"
+    priority: "medium"
   
-  ollama_data:
+  model_data:
     enabled: true
-    description: "Ollama model data"
+    description: "Embedded AI model data and configurations"
+    priority: "critical"
+    backup_frequency: "daily"
+    retention_days: 90
+  
+  vectorstore_data:
+    enabled: true
+    description: "Vector store and embeddings data"
+    priority: "critical"
+    backup_frequency: "daily"
+    retention_days: 60
   
   prometheus_data:
     enabled: true
     description: "Prometheus metrics data"
+    priority: "low"
+    backup_frequency: "weekly"
+    retention_days: 30
   
   grafana_data:
     enabled: true
     description: "Grafana dashboards and configuration"
+    priority: "medium"
+    backup_frequency: "weekly"
+    retention_days: 30
   
   alertmanager_data:
     enabled: true
     description: "Alertmanager data"
+    priority: "low"
+    backup_frequency: "weekly"
+    retention_days: 30
 
-# Vector store backup configuration
-vector_store:
+# Embedded AI backup configuration
+embedded_ai:
   enabled: true
-  path: "./data/vectorstore"
-  description: "AI vector embeddings and search index"
+  models_path: "./models"
+  vectorstore_path: "./data/vectorstore"
+  model_configs_path: "./models/config"
+  backup_model_configs: true
+  backup_conversation_history: true
+  backup_model_cache: true
+  backup_embeddings: true
+  verify_model_integrity: true
+  compress_models: true
+  description: "Complete embedded AI system backup including models, configurations, and vector stores"
+  priority: "critical"
+  backup_frequency: "daily"
+  retention_days: 90
 
 # Configuration files backup
 configuration:
@@ -63,15 +95,18 @@ configuration:
     - "redis/redis.conf"
     - "kubernetes/"
 
-# S3 backup configuration (optional)
+# S3 backup configuration (optional) for embedded appliance
 s3:
   enabled: false
-  bucket: "wazuh-ai-companion-backups"
+  bucket: "security-ai-appliance-backups"
   region: "us-east-1"
   access_key: ""  # Set via environment variable AWS_ACCESS_KEY_ID
   secret_key: ""  # Set via environment variable AWS_SECRET_ACCESS_KEY
-  prefix: "wazuh-ai-companion"
+  prefix: "security-ai-appliance"
   storage_class: "STANDARD_IA"  # STANDARD, STANDARD_IA, GLACIER, DEEP_ARCHIVE
+  multipart_threshold: "100MB"  # For large model files
+  multipart_chunksize: "50MB"
+  max_bandwidth: "100MB/s"
 
 # Backup schedule configuration
 schedule:
@@ -140,16 +175,24 @@ performance:
   max_backup_size: "10GB"
   bandwidth_limit: ""  # e.g., "100M" for 100 MB/s
 
-# Backup types configuration
+# Backup types configuration for embedded appliance
 backup_types:
   full:
-    description: "Complete backup of all components"
+    description: "Complete backup of all embedded appliance components"
     components:
       - "postgres"
       - "redis"
+      - "embedded_ai"
       - "vectorstore"
       - "volumes"
       - "configuration"
+    
+  ai_models_only:
+    description: "Backup embedded AI models and configurations only"
+    components:
+      - "embedded_ai"
+      - "model_data"
+      - "vectorstore_data"
     
   incremental:
     description: "Incremental backup of changed data"
@@ -167,7 +210,7 @@ backup_types:
     components:
       - "configuration"
 
-# Disaster recovery settings
+# Disaster recovery settings for embedded appliance
 disaster_recovery:
   rpo_target: "1h"  # Recovery Point Objective
   rto_target: "4h"  # Recovery Time Objective
@@ -175,12 +218,21 @@ disaster_recovery:
   backup_locations:
     primary: "/backups"
     secondary: "/backups/offsite"
-    cloud: "s3://wazuh-ai-companion-backups"
+    cloud: "s3://security-ai-appliance-backups"
+  
+  embedded_ai_recovery:
+    model_download_timeout: "60m"  # Extended for large models
+    vectorstore_rebuild_timeout: "4h"  # Extended for large datasets
+    model_verification_timeout: "30m"
+    fallback_models: ["microsoft/DialoGPT-small", "distilbert-base-uncased"]
+    auto_model_download: true
+    verify_model_checksums: true
   
   testing:
     frequency: "monthly"
     automated: true
     notification_required: true
+    test_model_loading: true
   
   documentation:
     runbook_path: "./docs/DISASTER_RECOVERY.md"

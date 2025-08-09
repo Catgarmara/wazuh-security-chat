@@ -76,7 +76,7 @@
   - Backend: FastAPI application (port 8000)
   - Database: PostgreSQL 15 (port 5432)
   - Cache: Redis 7 (port 6379)
-  - LLM: Ollama service (port 11434)
+  - LLM: Embedded LlamaCpp engine (integrated in app)
   - Proxy: Nginx reverse proxy (ports 80/443)
   - Monitoring: Prometheus (9090) + Grafana (3001 in prod)
 

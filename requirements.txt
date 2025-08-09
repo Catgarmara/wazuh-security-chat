@@ -1,6 +1,6 @@
 # Core FastAPI and web framework
 fastapi==0.104.1
-uvicorn[standard]==0.24.0
+uvicorn==0.24.0
 websockets==12.0
 
 # Configuration and validation
@@ -28,16 +28,22 @@ langchain-huggingface==0.0.1
 faiss-cpu==1.7.4
 sentence-transformers==2.2.2
 
-# Embedded AI dependencies - LlamaCpp Integration
+# Embedded AI dependencies - LlamaCpp Integration for complete self-containment
 llama-cpp-python==0.2.20
 psutil==5.9.6
 GPUtil==1.4.0
+
+# HuggingFace integration for model management
+transformers==4.36.0
+huggingface-hub==0.19.4
+tokenizers==0.15.0
 
 # HTTP client for HuggingFace integration
 requests==2.31.0
 
 # Data processing
 numpy==1.24.4
+pandas==2.1.4
 
 # SSH and remote access
 paramiko==3.4.0
@@ -47,6 +53,7 @@ python-dateutil==2.8.2
 
 # File handling
 aiofiles==23.2.1
+pathlib2==2.3.7
 
 # JSON handling
 orjson==3.9.10
@@ -59,9 +66,26 @@ validators==0.22.0
 
 # Configuration
 python-dotenv==1.0.0
+toml==0.10.2
 
 # Security
 cryptography==41.0.8
 
 # Monitoring and metrics
 prometheus-client==0.19.0
+
+# Memory profiling and system monitoring
+memory-profiler==0.61.0
+
+# Time handling
+arrow==1.3.0
+
+# Async support
+asyncio-mqtt==0.16.1
+
+# Task queue
+dramatiq[redis,watch]==1.15.0
+
+# Logging
+loguru==0.7.2
+structlog==23.2.0

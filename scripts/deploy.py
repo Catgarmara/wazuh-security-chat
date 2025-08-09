@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-Wazuh AI Companion - Comprehensive Deployment Script
+AI-Enhanced Security Query Interface - Comprehensive Deployment Script
 
-This script provides automated deployment capabilities for different environments
+This script provides automated deployment capabilities for the self-contained security appliance
 including development, staging, and production deployments with proper validation.
+
+This deployment script is designed for the embedded AI appliance with no external dependencies.
 """
 
 import argparse
@@ -18,8 +20,8 @@ from datetime import datetime
 import requests
 
 
-class WazuhDeployer:
-    """Comprehensive deployment manager for Wazuh AI Companion."""
+class SecurityApplianceDeployer:
+    """Comprehensive deployment manager for AI-Enhanced Security Query Interface appliance."""
     
     def __init__(self, environment: str = "development"):
         self.environment = environment
@@ -38,21 +40,21 @@ class WazuhDeployer:
                     "profiles": ["monitoring"],
                     "health_check_timeout": 120,
                     "required_services": ["app", "postgres", "redis"],
-                    "optional_services": ["ollama", "prometheus", "grafana"]
+                    "optional_services": ["prometheus", "grafana"]
                 },
                 "staging": {
                     "compose_file": "docker-compose.prod.yml",
                     "profiles": ["monitoring"],
                     "health_check_timeout": 180,
                     "required_services": ["app", "postgres", "redis", "nginx"],
-                    "optional_services": ["ollama", "prometheus", "grafana", "alertmanager"]
+                    "optional_services": ["prometheus", "grafana", "alertmanager"]
                 },
                 "production": {
                     "compose_file": "docker-compose.prod.yml",
                     "profiles": [],
                     "health_check_timeout": 300,
                     "required_services": ["app", "postgres", "redis", "nginx"],
-                    "optional_services": ["ollama"]
+                    "optional_services": []
                 }
             },
             "health_checks": {
@@ -141,7 +143,7 @@ class WazuhDeployer:
     def _prepare_development_environment(self) -> bool:
         """Prepare development environment."""
         env_content = """
-# Development Environment
+# Development Environment - Self-Contained Security Appliance
 ENVIRONMENT=development
 DEBUG=true
 DB_NAME=wazuh_chat
@@ -150,6 +152,18 @@ DB_PASSWORD=postgres
 SECRET_KEY=development_secret_key_32_characters_minimum
 GRAFANA_PASSWORD=admin
 GRAFANA_SECRET_KEY=development_grafana_secret_key
+# Embedded AI Configuration - No External Dependencies
+AI_SERVICE_TYPE=embedded
+MODELS_PATH=/app/models
+VECTORSTORE_PATH=/app/data/vectorstore
+MAX_CONCURRENT_MODELS=3
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+DEFAULT_TEMPERATURE=0.7
+DEFAULT_MAX_TOKENS=1024
+APPLIANCE_MODE=true
+SIEM_INTEGRATION_ENABLED=true
+MODEL_AUTO_DOWNLOAD=true
+CONVERSATION_MEMORY_SIZE=10
 """
         
         env_file = os.path.join(self.project_root, ".env")
@@ -162,7 +176,7 @@ GRAFANA_SECRET_KEY=development_grafana_secret_key
     def _prepare_staging_environment(self) -> bool:
         """Prepare staging environment."""
         env_content = """
-# Staging Environment
+# Staging Environment - Self-Contained Security Appliance
 ENVIRONMENT=staging
 DEBUG=false
 DB_NAME=wazuh_chat_staging
@@ -171,6 +185,18 @@ DB_PASSWORD=staging_password_123_secure
 SECRET_KEY=staging_secret_key_must_be_32_characters_long
 GRAFANA_PASSWORD=staging_grafana_password
 GRAFANA_SECRET_KEY=staging_grafana_secret_key_for_security
+# Embedded AI Configuration - No External Dependencies
+AI_SERVICE_TYPE=embedded
+MODELS_PATH=/app/models
+VECTORSTORE_PATH=/app/data/vectorstore
+MAX_CONCURRENT_MODELS=2
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+DEFAULT_TEMPERATURE=0.7
+DEFAULT_MAX_TOKENS=1024
+APPLIANCE_MODE=true
+SIEM_INTEGRATION_ENABLED=true
+MODEL_AUTO_DOWNLOAD=false
+CONVERSATION_MEMORY_SIZE=10
 """
         
         env_file = os.path.join(self.project_root, ".env.staging")
@@ -190,7 +216,7 @@ GRAFANA_SECRET_KEY=staging_grafana_secret_key_for_security
             print("Creating template production environment file...")
             
             env_content = """
-# Production Environment - PLEASE UPDATE WITH SECURE VALUES
+# Production Environment - Self-Contained Security Appliance - PLEASE UPDATE WITH SECURE VALUES
 ENVIRONMENT=production
 DEBUG=false
 DB_NAME=wazuh_chat_prod
@@ -199,6 +225,18 @@ DB_PASSWORD=CHANGE_THIS_TO_SECURE_PASSWORD
 SECRET_KEY=CHANGE_THIS_TO_SECURE_32_CHARACTER_SECRET_KEY
 GRAFANA_PASSWORD=CHANGE_THIS_TO_SECURE_GRAFANA_PASSWORD
 GRAFANA_SECRET_KEY=CHANGE_THIS_TO_SECURE_GRAFANA_SECRET_KEY
+# Embedded AI Configuration - No External Dependencies
+AI_SERVICE_TYPE=embedded
+MODELS_PATH=/app/models
+VECTORSTORE_PATH=/app/data/vectorstore
+MAX_CONCURRENT_MODELS=2
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+DEFAULT_TEMPERATURE=0.7
+DEFAULT_MAX_TOKENS=1024
+APPLIANCE_MODE=true
+SIEM_INTEGRATION_ENABLED=true
+MODEL_AUTO_DOWNLOAD=false
+CONVERSATION_MEMORY_SIZE=10
 """
             
             with open(env_file, "w") as f:
@@ -340,31 +378,33 @@ GRAFANA_SECRET_KEY=CHANGE_THIS_TO_SECURE_GRAFANA_SECRET_KEY
             if response.status_code == 200:
                 data = response.json()
                 if data.get('status') == 'healthy':
-                    print("✅ Application health check passed")
+                    print("✅ Security appliance health check passed")
                     tests_passed += 1
                 else:
-                    print(f"❌ Application health check failed: {data}")
+                    print(f"❌ Security appliance health check failed: {data}")
             else:
-                print(f"❌ Application health check failed: HTTP {response.status_code}")
+                print(f"❌ Security appliance health check failed: HTTP {response.status_code}")
         except Exception as e:
-            print(f"❌ Application health check failed: {e}")
+            print(f"❌ Security appliance health check failed: {e}")
         
-        # Test detailed health endpoint
+        # Test detailed health endpoint with embedded AI status
         total_tests += 1
         try:
             response = requests.get("http://localhost:8000/health/detailed", timeout=30)
             if response.status_code == 200:
                 data = response.json()
                 overall_status = data.get('summary', {}).get('overall_status', 'unknown')
-                if overall_status in ['healthy', 'degraded']:
-                    print(f"✅ Detailed health check passed (Status: {overall_status})")
+                embedded_ai_status = data.get('services', {}).get('embedded_ai', {}).get('status', 'unknown')
+                
+                if overall_status in ['healthy', 'degraded'] and embedded_ai_status in ['healthy', 'ready']:
+                    print(f"✅ Embedded AI appliance health check passed (Overall: {overall_status}, AI: {embedded_ai_status})")
                     tests_passed += 1
                 else:
-                    print(f"❌ Detailed health check failed: {overall_status}")
+                    print(f"❌ Embedded AI appliance health check failed: Overall={overall_status}, AI={embedded_ai_status}")
             else:
-                print(f"❌ Detailed health check failed: HTTP {response.status_code}")
+                print(f"❌ Embedded AI appliance health check failed: HTTP {response.status_code}")
         except Exception as e:
-            print(f"❌ Detailed health check failed: {e}")
+            print(f"❌ Embedded AI appliance health check failed: {e}")
         
         # Test metrics endpoint
         total_tests += 1
@@ -491,7 +531,7 @@ GRAFANA_SECRET_KEY=CHANGE_THIS_TO_SECURE_GRAFANA_SECRET_KEY
 
 def main():
     """Main deployment script entry point."""
-    parser = argparse.ArgumentParser(description="Wazuh AI Companion Deployment Script")
+    parser = argparse.ArgumentParser(description="AI-Enhanced Security Query Interface Deployment Script")
     parser.add_argument(
         "action",
         choices=["deploy", "rollback", "status"],
@@ -511,7 +551,7 @@ def main():
     
     args = parser.parse_args()
     
-    deployer = WazuhDeployer(environment=args.environment)
+    deployer = SecurityApplianceDeployer(environment=args.environment)
     
     if args.action == "deploy":
         success = deployer.deploy()

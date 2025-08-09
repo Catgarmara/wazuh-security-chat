@@ -35,17 +35,34 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: ollama-pvc
+  name: model-data-pvc
   namespace: wazuh
   labels:
     app.kubernetes.io/name: wazuh-ai-companion
-    app.kubernetes.io/component: ollama
+    app.kubernetes.io/component: embedded-ai
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 20Gi
+  storageClassName: fast-ssd
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vectorstore-data-pvc
+  namespace: wazuh
+  labels:
+    app.kubernetes.io/name: wazuh-ai-companion
+    app.kubernetes.io/component: embedded-ai
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
   storageClassName: fast-ssd
 
 ---

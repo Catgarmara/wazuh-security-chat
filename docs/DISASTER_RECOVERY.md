@@ -1,8 +1,6 @@
 # Wazuh AI Companion - Disaster Recovery Guide
 
-> **IMPORTANT NOTICE**: This document contains references to the deprecated AIService which used Ollama. 
-> The system now uses EmbeddedAIService with LlamaCpp. All code examples referencing AIService 
-> should be updated to use EmbeddedAIService instead.
+This document provides comprehensive disaster recovery procedures for the embedded AI security appliance.
 
 This document provides comprehensive disaster recovery procedures for the Wazuh AI Companion system, including backup strategies, recovery procedures, and business continuity planning.
 
@@ -25,7 +23,7 @@ The Wazuh AI Companion consists of the following critical components:
 - **Application Server**: FastAPI application with AI/ML capabilities
 - **Database**: PostgreSQL for structured data storage
 - **Cache**: Redis for session and cache management
-- **AI Models**: Ollama LLM and vector embeddings
+- **AI Models**: Embedded LlamaCpp engine with local models and vector embeddings
 - **Monitoring**: Prometheus, Grafana, and Alertmanager
 - **Reverse Proxy**: Nginx for load balancing and SSL termination
 
@@ -244,18 +242,18 @@ python3 scripts/recovery.py restore \
   --components vectorstore \
   --backup-dir /path/to/backups
 
-# 3. Alternative: Direct vector store restore using AI service
+# 3. Alternative: Direct vector store restore using embedded AI service
 python3 -c "
-from services.ai_service import AIService
-ai_service = AIService()
+from services.embedded_ai_service import EmbeddedAIService
+ai_service = EmbeddedAIService()
 result = ai_service.restore_vectorstore_from_path('/path/to/backups', 'default')
 print('Restore successful:', result)
 "
 
 # 4. Verify vector store integrity
 python3 -c "
-from services.ai_service import AIService
-ai_service = AIService()
+from services.embedded_ai_service import EmbeddedAIService
+ai_service = EmbeddedAIService()
 verification = ai_service.verify_vectorstore_backup('/path/to/backups', 'default')
 print('Verification result:', verification)
 "
@@ -271,8 +269,8 @@ Before performing recovery, always verify backup integrity:
 ```bash
 # Verify specific backup
 python3 -c "
-from services.ai_service import AIService
-ai_service = AIService()
+from services.embedded_ai_service import EmbeddedAIService
+ai_service = EmbeddedAIService()
 result = ai_service.verify_vectorstore_backup('/backups', 'default')
 if result['valid']:
     print('✅ Backup is valid')
@@ -568,9 +566,9 @@ docker-compose exec postgres psql -U postgres -d wazuh_chat -c "SELECT COUNT(*) 
 
 # Check vector store integrity
 python3 -c "
-from services.ai_service import AIService
+from services.embedded_ai_service import EmbeddedAIService
 import os
-ai_service = AIService()
+ai_service = EmbeddedAIService()
 vectorstore_path = './data/vectorstore/default'
 if os.path.exists(vectorstore_path):
     print('Vector store directory exists')
@@ -616,8 +614,8 @@ python3 scripts/test-backup-recovery.py --test-case verification
 
 # Verify embedding model compatibility
 python3 -c "
-from services.ai_service import AIService
-ai_service = AIService()
+from services.embedded_ai_service import EmbeddedAIService
+ai_service = EmbeddedAIService()
 result = ai_service.verify_vectorstore_backup('/backups', 'default')
 if not result['model_compatible']:
     print('❌ Model mismatch detected')
@@ -630,9 +628,9 @@ else:
 # Rebuild vector store from logs if backup is incompatible
 python3 -c "
 from services.log_service import LogService
-from services.ai_service import AIService
+from services.embedded_ai_service import EmbeddedAIService
 log_service = LogService()
-ai_service = AIService()
+ai_service = EmbeddedAIService()
 
 # Load recent logs
 logs = log_service.load_logs_from_days(7)
@@ -671,8 +669,8 @@ docker-compose exec postgres psql -U postgres -d wazuh_chat -c "ANALYZE;"
 ```bash
 # Check vector store size and performance
 python3 -c "
-from services.ai_service import AIService
-ai_service = AIService()
+from services.embedded_ai_service import EmbeddedAIService
+ai_service = EmbeddedAIService()
 try:
     ai_service.load_vectorstore('default')
     if hasattr(ai_service.vectorstore, 'index'):
@@ -697,8 +695,8 @@ except Exception as e:
 
 # Optimize vector store if needed
 python3 -c "
-from services.ai_service import AIService
-ai_service = AIService()
+from services.embedded_ai_service import EmbeddedAIService
+ai_service = EmbeddedAIService()
 # Reload and save to optimize index
 ai_service.load_vectorstore('default')
 ai_service.save_vectorstore('default')
@@ -713,7 +711,7 @@ print('Vector store optimized')
 docker stats
 
 # Restart memory-intensive services
-docker-compose restart app ollama
+docker-compose restart app
 
 # Check for memory leaks
 docker-compose exec app python -c "import psutil; print(psutil.virtual_memory())"

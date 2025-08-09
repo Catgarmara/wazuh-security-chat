@@ -212,3 +212,6 @@ __marimo__/
 # Kiro IDE files
 tests/
 Legacy/
+
+# CLAUDE
+CLAUDE.md

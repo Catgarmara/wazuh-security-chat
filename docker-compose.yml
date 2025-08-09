@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Main backend application
+  # AI-Enhanced Security Query Interface Appliance - Main Application
   app:
     build:
       context: .
@@ -20,7 +20,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - SECRET_KEY=development_secret_key_32_characters_minimum
-      # Embedded AI configuration - no external Ollama needed
+      # Embedded AI configuration for self-contained security appliance
       - AI_SERVICE_TYPE=embedded
       - MODELS_PATH=/app/models
       - VECTORSTORE_PATH=/app/data/vectorstore
@@ -29,17 +29,21 @@ services:
       - DEFAULT_TEMPERATURE=0.7
       - DEFAULT_MAX_TOKENS=1024
       - CONVERSATION_MEMORY_SIZE=10
+      # Security appliance specific settings
+      - APPLIANCE_MODE=true
+      - SIEM_INTEGRATION_ENABLED=true
+      - MODEL_AUTO_DOWNLOAD=true
     volumes:
       - .:/app
       - /app/__pycache__
-      - model_data:/app/models        # Local model storage
+      - model_data:/app/models        # Local model storage for security appliance
       - vectorstore_data:/app/data    # Vector store and cache data
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # GPU support for LlamaCpp (optional - uncomment if GPU available)
+    # GPU support for LlamaCpp (uncomment if GPU available for enhanced performance)
     # deploy:
     #   resources:
     #     reservations:
@@ -48,16 +52,16 @@ services:
     #           count: all
     #           capabilities: [gpu]
     networks:
-      - wazuh-network
+      - security-appliance-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s  # Extended for model loading
 
-  # Frontend Next.js application
+  # Security Appliance Web Interface
   frontend:
     build:
       context: ./frontend
@@ -66,7 +70,7 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=http://localhost:8000
         - NEXT_PUBLIC_WS_URL=ws://localhost:8000
-        - NEXT_PUBLIC_APP_NAME=Wazuh AI Companion
+        - NEXT_PUBLIC_APP_NAME=AI-Enhanced Security Query Interface
         - NEXT_PUBLIC_APP_VERSION=2.0.0
     ports:
       - "3000:3000"
@@ -74,13 +78,15 @@ services:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://app:8000
       - NEXT_PUBLIC_WS_URL=ws://app:8000
-      - NEXT_PUBLIC_APP_NAME=Wazuh AI Companion
+      - NEXT_PUBLIC_APP_NAME=AI-Enhanced Security Query Interface
       - NEXT_PUBLIC_APP_VERSION=2.0.0
       - NEXT_PUBLIC_SIEM_ENABLED=true
       - NEXT_PUBLIC_FEATURE_MODEL_MANAGEMENT=true
       - NEXT_PUBLIC_FEATURE_SIEM_DASHBOARD=true
       - NEXT_PUBLIC_FEATURE_THREAT_CORRELATION=true
       - NEXT_PUBLIC_FEATURE_ALERT_MANAGEMENT=true
+      - NEXT_PUBLIC_APPLIANCE_MODE=true
+      - NEXT_PUBLIC_EMBEDDED_AI=true
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -89,7 +95,7 @@ services:
       app:
         condition: service_healthy
     networks:
-      - wazuh-network
+      - security-appliance-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
@@ -98,7 +104,7 @@ services:
       retries: 3
       start_period: 40s
 
-  # PostgreSQL database
+  # PostgreSQL database for security appliance
   postgres:
     image: postgres:15-alpine
     environment:
@@ -111,7 +117,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
     networks:
-      - wazuh-network
+      - security-appliance-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d wazuh_chat"]
@@ -119,7 +125,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis cache
+  # Redis cache for security appliance
   redis:
     image: redis:7-alpine
     ports:
@@ -127,7 +133,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - wazuh-network
+      - security-appliance-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -136,11 +142,7 @@ services:
       retries: 5
     command: redis-server --appendonly yes
 
-  # Note: Ollama service removed - using embedded LlamaCpp instead
-  # Models are now stored locally in ./models directory
-  # No external LLM service dependencies required
-
-  # Nginx reverse proxy (optional for production-like setup)
+  # Nginx reverse proxy for security appliance (optional for production)
   nginx:
     image: nginx:alpine
     ports:
@@ -151,8 +153,9 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - app
+      - frontend
     networks:
-      - wazuh-network
+      - security-appliance-network
     restart: unless-stopped
     profiles:
       - production
@@ -166,7 +169,7 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     networks:
-      - wazuh-network
+      - security-appliance-network
     restart: unless-stopped
     profiles:
       - monitoring
@@ -175,7 +178,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports:
-      - "3000:3000"
+      - "3001:3000"  # Changed to avoid conflict with frontend
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
@@ -185,7 +188,7 @@ services:
     depends_on:
       - prometheus
     networks:
-      - wazuh-network
+      - security-appliance-network
     restart: unless-stopped
     profiles:
       - monitoring
@@ -199,7 +202,7 @@ services:
       - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager_data:/alertmanager
     networks:
-      - wazuh-network
+      - security-appliance-network
     restart: unless-stopped
     profiles:
       - monitoring
@@ -217,9 +220,9 @@ services:
       - '--path.procfs=/host/proc'
       - '--path.rootfs=/rootfs'
       - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($|/)'
     networks:
-      - wazuh-network
+      - security-appliance-network
     restart: unless-stopped
     profiles:
       - monitoring
@@ -234,7 +237,7 @@ services:
     depends_on:
       - postgres
     networks:
-      - wazuh-network
+      - security-appliance-network
     restart: unless-stopped
     profiles:
       - monitoring
@@ -249,7 +252,7 @@ services:
     depends_on:
       - redis
     networks:
-      - wazuh-network
+      - security-appliance-network
     restart: unless-stopped
     profiles:
       - monitoring
@@ -269,7 +272,7 @@ services:
     devices:
       - /dev/kmsg
     networks:
-      - wazuh-network
+      - security-appliance-network
     restart: unless-stopped
     profiles:
       - monitoring
@@ -277,13 +280,20 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  # ollama_data: removed - no longer needed
-  model_data:        # Local model storage
-  vectorstore_data:  # Vector store persistence
+  model_data:        # Local model storage for embedded AI
+  vectorstore_data:  # Vector store persistence for embedded processing
   prometheus_data:
   grafana_data:
   alertmanager_data:
 
 networks:
-  wazuh-network:
+  security-appliance-network:
     driver: bridge
+
+# Complete self-contained security appliance deployment
+# - No external AI service dependencies (Ollama removed)
+# - Models stored locally in ./models directory
+# - Embedded LlamaCpp provides all AI functionality
+# - Single-command deployment with docker-compose up
+# - Optional monitoring stack with --profile monitoring
+# - Optional production nginx with --profile production

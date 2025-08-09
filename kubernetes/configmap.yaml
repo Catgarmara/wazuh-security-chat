@@ -31,10 +31,10 @@ data:
   REDIS_DB: "0"
   REDIS_MAX_CONNECTIONS: "20"
   
-  # AI Configuration
-  OLLAMA_HOST: "ollama-service"
-  OLLAMA_PORT: "11434"
-  OLLAMA_MODEL: "llama3"
+  # Embedded AI Configuration
+  AI_SERVICE_TYPE: "embedded"
+  MODELS_PATH: "/app/models"
+  VECTORSTORE_PATH: "/app/data/vectorstore"
   EMBEDDING_MODEL: "all-MiniLM-L6-v2"
   CHUNK_SIZE: "500"
   CHUNK_OVERLAP: "50"

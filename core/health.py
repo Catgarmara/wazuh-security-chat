@@ -196,16 +196,32 @@ class HealthChecker:
             )
     
     async def check_ai_service_health(self) -> HealthCheck:
-        """Check AI service health including LLM and vector store."""
+        """Check embedded AI service health with comprehensive diagnostics."""
         start_time = time.time()
         
         try:
-            from services import get_ai_service
-            ai_service = get_ai_service()
+            from core.ai_factory import AIServiceFactory
+            ai_service = AIServiceFactory.get_ai_service()
+            
+            # Get detailed service health
+            service_health = ai_service.get_service_health_detailed()
+            
+            # Check llama-cpp-python availability
+            llama_cpp_available = service_health.get('llama_cpp_available', False)
+            
+            # Check loaded models
+            loaded_models = service_health.get('loaded_models', 0)
+            active_model = service_health.get('active_model')
+            
+            # Check service degradation
+            service_degraded = service_health.get('service_degraded', False)
+            initialization_errors = service_health.get('initialization_errors', [])
             
             # Test vector store availability
+            vector_store_status = "not_initialized"
+            vector_store_docs = 0
+            
             if hasattr(ai_service, 'vectorstore') and ai_service.vectorstore:
-                # Test vector store with a simple query
                 try:
                     test_results = ai_service.vectorstore.similarity_search("test", k=1)
                     vector_store_status = "available"
@@ -213,58 +229,98 @@ class HealthChecker:
                 except Exception as e:
                     vector_store_status = f"error: {str(e)}"
                     vector_store_docs = 0
-            else:
-                vector_store_status = "not_initialized"
-                vector_store_docs = 0
             
-            # Test LLM connectivity (if available)
-            llm_status = "unknown"
-            try:
-                if hasattr(ai_service, 'llm') and ai_service.llm:
-                    # Simple test query to LLM
-                    test_response = await asyncio.wait_for(
-                        asyncio.create_task(ai_service._test_llm_connection()),
-                        timeout=10.0
+            # Test model inference (if models are loaded)
+            model_inference_status = "no_models"
+            if loaded_models > 0 and active_model:
+                try:
+                    # Simple test inference
+                    test_response = ai_service.generate_response(
+                        "Test", 
+                        session_id="health_check",
+                        max_tokens=10
                     )
-                    llm_status = "available" if test_response else "unavailable"
-                else:
-                    llm_status = "not_configured"
-            except asyncio.TimeoutError:
-                llm_status = "timeout"
-            except Exception as e:
-                llm_status = f"error: {str(e)}"
+                    model_inference_status = "available" if test_response else "failed"
+                except Exception as e:
+                    model_inference_status = f"error: {str(e)}"
+            
+            # Check resource status
+            resource_status = service_health.get('resource_status', {})
+            overall_resource_status = resource_status.get('overall_status', 'unknown')
             
             # Determine overall AI service health
-            if vector_store_status == "available" and llm_status == "available":
-                status = HealthStatus.HEALTHY
-                message = "AI service fully operational"
-            elif vector_store_status == "available" or llm_status == "available":
-                status = HealthStatus.DEGRADED
-                message = "AI service partially operational"
-            else:
+            critical_issues = []
+            warnings = []
+            
+            if not llama_cpp_available:
+                critical_issues.append("llama-cpp-python not available")
+            
+            if service_degraded:
+                warnings.append("service running in degraded mode")
+            
+            if initialization_errors:
+                warnings.extend([f"init error: {err[:50]}..." for err in initialization_errors[:2]])
+            
+            if loaded_models == 0:
+                warnings.append("no models loaded")
+            
+            if overall_resource_status == "critical":
+                critical_issues.append("critical resource usage")
+            elif overall_resource_status == "warning":
+                warnings.append("high resource usage")
+            
+            # Determine status
+            if critical_issues:
                 status = HealthStatus.UNHEALTHY
-                message = "AI service unavailable"
+                message = f"AI service critical: {', '.join(critical_issues)}"
+            elif warnings:
+                status = HealthStatus.DEGRADED
+                message = f"AI service degraded: {', '.join(warnings)}"
+            else:
+                status = HealthStatus.HEALTHY
+                message = "Embedded AI service fully operational"
             
             response_time = time.time() - start_time
             
+            # Detailed health information
+            details = {
+                "llama_cpp_available": llama_cpp_available,
+                "loaded_models": loaded_models,
+                "active_model": active_model,
+                "service_degraded": service_degraded,
+                "vector_store_status": vector_store_status,
+                "vector_store_documents": vector_store_docs,
+                "model_inference_status": model_inference_status,
+                "resource_status": overall_resource_status,
+                "initialization_errors_count": len(initialization_errors),
+                "backup_models_available": service_health.get('backup_models_available', 0),
+                "fallback_model_configured": bool(service_health.get('fallback_model_id'))
+            }
+            
+            # Add resource details if available
+            if resource_status.get('resources'):
+                details["resource_details"] = {
+                    resource: {
+                        "usage_percent": info.get("usage_percent", 0),
+                        "status": info.get("status", "unknown")
+                    }
+                    for resource, info in resource_status['resources'].items()
+                }
+            
             return HealthCheck(
-                name="ai_service",
+                name="embedded_ai_service",
                 status=status,
                 message=message,
-                details={
-                    "vector_store_status": vector_store_status,
-                    "vector_store_documents": vector_store_docs,
-                    "llm_status": llm_status
-                },
+                details=details,
                 response_time=response_time
             )
             
         except Exception as e:
-            logger.error(f"AI service health check failed: {e}")
+            logger.error(f"Embedded AI service health check failed: {e}")
             return HealthCheck(
-                name="ai_service",
+                name="embedded_ai_service",
                 status=HealthStatus.UNHEALTHY,
-                message=f"AI service check failed: {str(e)}",
+                message=f"Embedded AI service check failed: {str(e)}",
                 response_time=time.time() - start_time
             )
     
@@ -545,7 +601,7 @@ class HealthChecker:
         health_check_methods = {
             "database": self.check_database_health,
             "redis": self.check_redis_health,
-            "ai_service": self.check_ai_service_health,
+            "embedded_ai_service": self.check_ai_service_health,
             "log_service": self.check_log_service_health,
             "system_resources": self.check_system_resources,
             "websocket_service": self.check_websocket_health

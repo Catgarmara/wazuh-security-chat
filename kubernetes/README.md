@@ -9,7 +9,7 @@ The deployment consists of the following components:
 - **Application Pods**: FastAPI application with auto-scaling
 - **PostgreSQL**: Database with persistent storage
 - **Redis**: Cache and session store
-- **Ollama**: LLM service for AI processing
+- **Embedded AI**: Self-contained LLM service with local models
 - **Nginx**: Reverse proxy and load balancer
 - **Prometheus**: Metrics collection
 - **Grafana**: Monitoring dashboards
@@ -73,8 +73,8 @@ kubectl apply -f postgres-deployment.yaml
 # 6. Deploy Redis
 kubectl apply -f redis-deployment.yaml
 
-# 7. Deploy Ollama
-kubectl apply -f ollama-deployment.yaml
+# 7. Deploy persistent volumes for embedded AI
+kubectl apply -f persistent-volumes.yaml
 
 # 8. Deploy application
 kubectl apply -f app-deployment.yaml
@@ -150,7 +150,7 @@ Each component has defined resource limits:
 | App       | 500m        | 1000m     | 512Mi          | 1Gi          |
 | PostgreSQL| 500m        | 1000m     | 512Mi          | 1Gi          |
 | Redis     | 250m        | 500m      | 256Mi          | 512Mi        |
-| Ollama    | 1000m       | 2000m     | 2Gi            | 4Gi          |
+| App (w/ AI)| 1500m      | 3000m     | 3Gi            | 6Gi          |
 | Nginx     | 250m        | 500m      | 128Mi          | 256Mi        |
 
 ## Networking
@@ -160,7 +160,7 @@ Each component has defined resource limits:
 - `wazuh-app-service`: ClusterIP for application pods
 - `postgres-service`: ClusterIP for database
 - `redis-service`: ClusterIP for Redis
-- `ollama-service`: ClusterIP for Ollama
+- `app-service`: ClusterIP for application with embedded AI
 - `nginx-service`: LoadBalancer for external access
 
 ### Ingress
