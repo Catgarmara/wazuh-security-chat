@@ -39,3 +39,49 @@ Regex / JSON normalization
 Dockerized deployment
 
 📂 Project Structure
+ai-threat-hunter/
+├── app.py                # Main Flask app  
+├── ai_clients.py         # Multi-model LLM integration  
+├── soc_templates.py      # Incident analysis & hunt packs  
+├── opensearch_client.py  # SIEM query integration  
+├── config_manager.py     # Config & environment variables  
+├── monitoring/           # Metrics & observability  
+├── static/               # Web UI (HTML/CSS/JS)  
+├── tests/                # Manual & automated tests  
+└── docs/                 # Deployment & config guides
+
+📈 Roadmap
+
+    Short Term (current):
+
+        Expand CrowdStrike Falcon connector (alerts + event search)
+
+        Additional SOC templates for EDR + hybrid telemetry
+
+    Medium Term (4–8 weeks):
+
+        Splunk & QRadar integration
+
+        Sentinel workspace queries
+
+        Cross-SIEM correlation
+
+    Long Term:
+
+        Universal API connector for arbitrary SIEM/EDR platforms
+
+        Advanced hunt-pack marketplace
+
+🔒 Security
+
+    Input validation & sanitization
+
+    Rate limiting
+
+    API key security (env-based)
+
+    Audit logging of all queries & responses
+
+📄 License
+
+This project is provided as-is for educational and development purposes.
