@@ -1,87 +1,221 @@
-AI Threat Hunter (Open-Source Prototype)
+# AI Threat Hunter 
 
-A Flask-based agentic SOC copilot that runs targeted hunts, executes investigations, and produces evidence-linked recommendations. Built as a lightweight alternative to commercial AI SOC assistants (e.g., Dropzone, Simbian, Legion).
+**Deploy an autonomous AI analyst that investigates alerts, queries your SIEM, and produces evidence-backed decisions in minutes instead of hours.**
 
-🚀 Core Features
+A Flask-based SOC assistant that enables AI-powered security analysis by connecting to live SIEM data. Built as a lightweight alternative for security teams who need AI assistance without enterprise vendor lock-in.
 
-Agentic Investigations: Forms hypotheses, queries SIEM data (currently OpenSearch), pivots across results, enriches with OSINT, maps to MITRE ATT&CK, and outputs incident narratives, IOCs, and recommended actions.
+## 🚀 Core Features
 
-Hunt Packs (Web/Auth Focus): Credential abuse, suspicious logins, traversal/injection attempts, admin-panel probing.
+- **Multi-Model AI Support**: Choose between DeepSeek, Google Gemini, and OpenAI models
+- **Real-Time SIEM Integration**: Query live security data and let AI analyze the raw results
+- **SOC Analysis Templates**: Pre-built templates for incident analysis, threat hunting, and forensic investigation
+- **Streaming Responses**: Get AI analysis as it's generated, not after long waits
+- **Model Switching**: Change AI providers mid-conversation without losing context
+- **Flexible Query Engine**: Execute any SIEM query and have AI analyze the results
 
-Multi-Model Engine: Supports multiple LLMs (DeepSeek, Gemini, OpenAI, local air-gapped models) with real-time streaming, retry/fallback, and model switching mid-conversation.
+## 🔌 SIEM Integrations
 
-SOC Integration: Prebuilt analysis templates for incident classification, triage summaries, and remediation steps.
+### Current
+- ✅ **OpenSearch/Elasticsearch** - Query via console proxy pattern with full authentication support
 
-Operational Guardrails: Input validation, rate limiting, API key isolation, audit logging, health/metrics endpoints.
+### In Development (Week 4-6)
+- 🚧 **Splunk** - Enterprise and Cloud integration
+- 🚧 **CrowdStrike Falcon** - EDR alerts and event data
+- 🚧 **Microsoft Sentinel** - Azure Sentinel workspace queries
 
-Proven Impact: Internal application of this approach cut L1 triage from ~30 min to ~5 min (~83%) and standardized analyst output.
+### Planned
+- **Elastic Security** - Native Elastic SIEM integration  
+- **Chronicle Security** - Google Chronicle support
+- **Generic REST API** - Connect to any SIEM with REST endpoints
 
-🔌 Integrations
+## 🚀 Quick Start
 
-Current: OpenSearch (console-proxy query pattern)
+### Prerequisites
+- Python 3.8+
+- LLM API or LLM access
+- Access to SIEMS
 
-In Progress: CrowdStrike Falcon EDR (alerts + event data) ← next milestone
+### Installation
 
-Planned: Splunk, QRadar, Microsoft Sentinel, Elastic Security, Chronicle
+1. **Clone and install**:
+   ```bash
+   git clone https://github.com/catgarmara/ai-threat-hunter.git
+   cd ai-threat-hunter
+   pip install -r requirements.txt
+   ```
 
-🛠 Tech Stack
+2. **Configure environment**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys and SIEM credentials
+   ```
 
-Python / Flask
+3. **Run the application**:
+   ```bash
+   python3 app.py
+   ```
 
-OpenSearch (SIEM integration)
+4. **Open browser**: http://127.0.0.1:5000
 
-LLM APIs (DeepSeek, Gemini, OpenAI) + local LLM support
+## 📋 SOC Analysis Examples
 
-SSE streaming, REST endpoints
+### Basic Incident Analysis
+```bash
+curl -X POST http://localhost:5000/soc/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"incident_data": "Suspicious PowerShell execution detected", "template": "incident_analysis"}'
+```
 
-Regex / JSON normalization
+### Query Live SIEM Data
+```bash
+curl -X POST http://localhost:5000/soc/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "incident_data": "Analyze authentication failures",
+    "opensearch_query": {
+      "query": {"match": {"event.outcome": "failure"}},
+      "size": 100
+    }
+  }'
+```
 
-Dockerized deployment
+## 🛠 Architecture
 
-📂 Project Structure
+```
 ai-threat-hunter/
-├── app.py                # Main Flask app  
-├── ai_clients.py         # Multi-model LLM integration  
-├── soc_templates.py      # Incident analysis & hunt packs  
-├── opensearch_client.py  # SIEM query integration  
-├── config_manager.py     # Config & environment variables  
-├── monitoring/           # Metrics & observability  
-├── static/               # Web UI (HTML/CSS/JS)  
-├── tests/                # Manual & automated tests  
-└── docs/                 # Deployment & config guides
+├── app.py                    # Main Flask application & SOC endpoints
+├── ai_clients.py            # Multi-model AI integration
+├── config_manager.py        # Environment and configuration
+├── opensearch_client_wrapper.py  # SIEM query integration (starting with OpenSearch)
+├── error_handler.py         # Error handling and recovery
+├── monitoring_manager.py    # Metrics and observability
+├── static/                  # Web UI assets
+│   ├── index.html          
+│   ├── js/main.js          
+│   └── css/               
+├── security_core/          # Security analysis modules
+├── tests/                  # Test suites
+└── ccspec/                # Implementation specifications
+```
 
-📈 Roadmap
+## 🔧 Configuration
 
-    Short Term (current):
+### Required Environment Variables
+```bash
+# AI Model Keys
+DEEPSEEK_API_KEY=sk-your-deepseek-key
+GEMINI_API_KEY=your-gemini-key  # Optional
 
-        Expand CrowdStrike Falcon connector (alerts + event search)
+# OpenSearch/Elasticsearch (Optional)
+OPENSEARCH_HOST=your-opensearch.company.com
+OPENSEARCH_PORT=443
+OPENSEARCH_USER=your-username
+OPENSEARCH_PASSWORD=your-password
+OPENSEARCH_INDEX=security-*
+OPENSEARCH_SSL=true
+```
 
-        Additional SOC templates for EDR + hybrid telemetry
+### API Endpoints
 
-    Medium Term (4–8 weeks):
+- **Web Interface**: `GET /`
+- **Chat**: `POST /chat`
+- **SOC Analysis**: `POST /soc/analyze`
+- **Health Check**: `GET /health`
+- **Metrics**: `GET /performance`
+- **SOC Templates**: `GET /soc/templates`
 
-        Splunk & QRadar integration
+## 📈 Development Roadmap
 
-        Sentinel workspace queries
+### Phase 1: Core Platform (Completed)
+- ✅ Multi-model AI support (DeepSeek, Gemini, OpenAI)
+- ✅ SIEM data integration foundation (OpenSearch)
+- ✅ SOC analysis templates
+- ✅ Session management and streaming responses
 
-        Cross-SIEM correlation
+### Phase 2: Universal SIEM Connector (Current)
+- 🚧 **Data Source Integration Layer**
+  - Splunk Enterprise/Cloud via REST API
+  - CrowdStrike Falcon SIEM API connector
+  - Microsoft Sentinel KQL queries
+  - Elastic Security data streams
+- 🚧 **Unified Query Translation**
+  - Convert natural language to platform-specific queries
+  - Normalize responses across different SIEM formats
 
-    Long Term:
+### Phase 3: Intelligent Orchestration 
+- **Autonomous Investigation Agents**
+  - Hypothesis formation from initial alerts
+  - Automatic pivot queries based on findings
+  - Evidence chain construction
+  - MITRE ATT&CK technique mapping
+- **Context-Aware Analysis**
+  - Historical baseline comparison
+  - Entity relationship mapping
+  - Threat intelligence enrichment
+  - IOC extraction and correlation
 
-        Universal API connector for arbitrary SIEM/EDR platforms
+### Phase 4: Operational Intelligence 
+- **Workflow Automation**
+  - Custom agent creation for specific use cases
+  - Automated triage and classification
+  - Response action recommendations
+  - Integration with SOAR platforms
+- **Multi-Source Correlation**
+  - Cross-SIEM data fusion
+  - EDR + SIEM unified analysis
+  - Network + endpoint correlation
+  - Cloud security posture integration
 
-        Advanced hunt-pack marketplace
+### Phase 5: Enterprise Features (Future)
+- **Deployment Flexibility**
+  - Air-gapped deployment option
+  - Multi-tenant architecture
+  - Role-based access control
+  - Audit logging and compliance reporting
+- **Advanced Capabilities**
+  - Custom model fine-tuning on org data
+  - Embedded assistants for existing tools
+  - White-label deployment options
+  - API-first architecture for integrations
 
-🔒 Security
+## 🧪 Testing
 
-    Input validation & sanitization
+```bash
+# Manual testing interface
+python3 manual_test.py
 
-    Rate limiting
+# Test AI model connections
+python3 demo_ai_clients.py
 
-    API key security (env-based)
+# Integration tests
+python3 test_flask_integration.py
 
-    Audit logging of all queries & responses
+# OpenSearch connectivity test
+python3 security_core/tests/test_savedcard_alert.py
+```
 
-📄 License
+## 🤝 Contributing
 
-This project is provided as-is for educational and development purposes.
+This is an open-source prototype actively being developed. Contributions welcome:
+
+1. Fork the repository
+2. Create a feature branch
+3. Test your changes
+4. Submit a pull request
+
+Priority areas for contribution:
+- Additional SIEM connectors
+- Hunt pack templates
+- AI prompt optimization
+- Security analysis improvements
+
+## 📚 Documentation
+
+- [Configuration Reference](CONFIGURATION_REFERENCE.md)
+- [Deployment Guide](DEPLOYMENT_GUIDE.md)
+- [Development Notes](CLAUDE.md)
+- [Implementation Plans](ccspec/)
+
+## ⚠️ Disclaimer
+
+This is a prototype tool for security analysis. Always verify AI-generated analysis with human expertise. Not intended as a replacement for professional security analysts or commercial SOC platforms.
